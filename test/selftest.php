@@ -1,6 +1,8 @@
 <?php
 
 require_once __DIR__ .'/../WavesKit.php';
+use WavesKit\WavesKit;
+
 $wk = new WavesKit();
 
 function a2b( $a )
@@ -61,7 +63,10 @@ class tester
         $ms = $this->ms( $this->init );
         echo "TOTAL:   {$this->successful}/$total ($ms ms)\n";
         if( $this->failed > 0 )
+        {
+            sleep( 1 );
             exit( 1 );
+        }
     }
 }
 
@@ -70,57 +75,61 @@ $t = new tester( $wk );
 
 // https://docs.wavesplatform.com/en/technical-details/cryptographic-practical-details.html
 
-$t->pretest( 'base58_decode', __LINE__ );
+$t->pretest( 'base58Decode', __LINE__ );
 {
-    $t->test( $wk->base58_decode( 'teststring' ) === a2b( [ 5, 83, 9, -20, 82, -65, 120, -11 ] ) );
+    $t->test( $wk->base58Decode( 'teststring' ) === a2b( [ 5, 83, 9, -20, 82, -65, 120, -11 ] ) );
 }
 
-$t->pretest( 'base58_encode', __LINE__ );
-{
-    $wk->set_seed( 'manage manual recall harvest series desert melt police rose hollow moral pledge kitten position add' );
-    $t->test( $wk->get_seed() === 'xrv7ffrv2A9g5pKSxt7gHGrPYJgRnsEMDyc4G7srbia6PhXYLDKVsDxnqsEqhAVbbko7N1tDyaSrWCZBoMyvdwaFNjWNPjKdcoZTKbKr2Vw9vu53Uf4dYpyWCyvfPbRskHfgt9q' );
+$seed = 'manage manual recall harvest series desert melt police rose hollow moral pledge kitten position add';
+
+$t->pretest( 'base58Encode', __LINE__ );
+{    
+    $t->test( $wk->base58Encode( $seed ) === 'xrv7ffrv2A9g5pKSxt7gHGrPYJgRnsEMDyc4G7srbia6PhXYLDKVsDxnqsEqhAVbbko7N1tDyaSrWCZBoMyvdwaFNjWNPjKdcoZTKbKr2Vw9vu53Uf4dYpyWCyvfPbRskHfgt9q' );
 }
 
-$t->pretest( 'get_privkey', __LINE__ );
+$t->pretest( 'getPrivateKey', __LINE__ );
 {
-    $t->test( $wk->get_privkey() === '49mgaSSVQw6tDoZrHSr9rFySgHHXwgQbCRwFssboVLWX' );
+    $wk->setSeed( $seed );
+    $t->test( $wk->getPrivateKey() === '49mgaSSVQw6tDoZrHSr9rFySgHHXwgQbCRwFssboVLWX' );
 }
 
-$t->pretest( 'get_pubkey', __LINE__ );
+$t->pretest( 'getPublicKey', __LINE__ );
 {
-    $t->test( $wk->get_pubkey() === 'HBqhfdFASRQ5eBBpu2y6c6KKi1az6bMx8v1JxX4iW1Q8' );
+    $t->test( $wk->getPublicKey() === 'HBqhfdFASRQ5eBBpu2y6c6KKi1az6bMx8v1JxX4iW1Q8' );
 }
 
-$t->pretest( 'get_address', __LINE__ );
+$t->pretest( 'getAddress', __LINE__ );
 {
-    $address_saved = $wk->get_address();
+    $address_saved = $wk->getAddress();
     $t->test( $address_saved === '3PPbMwqLtwBGcJrTA5whqJfY95GqnNnFMDX' );
 }
 
-$t->pretest( 'random_seed', __LINE__ );
+$t->pretest( 'randomSeed', __LINE__ );
 {
-    $wk->set_seed( $wk->random_seed() );
-    $t->test( $wk->get_address() !== '3PPbMwqLtwBGcJrTA5whqJfY95GqnNnFMDX' );
+    $wk->setSeed( $wk->randomSeed() );
+    $address = $wk->getAddress();
+    $wk->setSeed( $wk->randomSeed() );
+    $t->test( $wk->getAddress() !== $address );
 }
 
 // sig/verify
 
-$t->pretest( 'get_pubkey', __LINE__ );
+$t->pretest( 'getPublicKey', __LINE__ );
 {
     $wk = new WavesKit( 'T' );
-    $wk->set_privkey( '7VLYNhmuvAo5Us4mNGxWpzhMSdSSdEbEPFUDKSnA6eBv' );
-    $t->test( $wk->get_pubkey() === 'EENPV1mRhUD9gSKbcWt84cqnfSGQP5LkCu5gMBfAanYH' );
+    $wk->setPrivateKey( '7VLYNhmuvAo5Us4mNGxWpzhMSdSSdEbEPFUDKSnA6eBv' );
+    $t->test( $wk->getPublicKey() === 'EENPV1mRhUD9gSKbcWt84cqnfSGQP5LkCu5gMBfAanYH' );
 }
 
-$t->pretest( 'get_address', __LINE__ );
+$t->pretest( 'getAddress', __LINE__ );
 {
-    $t->test( $wk->get_address() === '3N9Q2sdkkhAnbR4XCveuRaSMLiVtvebZ3wp' );
+    $t->test( $wk->getAddress() === '3N9Q2sdkkhAnbR4XCveuRaSMLiVtvebZ3wp' );
 }
 
 $t->pretest( 'verify (known)', __LINE__ );
 {
-    $msg = $wk->base58_decode( 'Ht7FtLJBrnukwWtywum4o1PbQSNyDWMgb4nXR5ZkV78krj9qVt17jz74XYSrKSTQe6wXuPdt3aCvmnF5hfjhnd1gyij36hN1zSDaiDg3TFi7c7RbXTHDDUbRgGajXci8PJB3iJM1tZvh8AL5wD4o4DCo1VJoKk2PUWX3cUydB7brxWGUxC6mPxKMdXefXwHeB4khwugbvcsPgk8F6YB' );
-    $sig = $wk->base58_decode( '2mQvQFLQYJBe9ezj7YnAQFq7k9MxZstkrbcSKpLzv7vTxUfnbvWMUyyhJAc1u3vhkLqzQphKDecHcutUrhrHt22D' );
+    $msg = $wk->base58Decode( 'Ht7FtLJBrnukwWtywum4o1PbQSNyDWMgb4nXR5ZkV78krj9qVt17jz74XYSrKSTQe6wXuPdt3aCvmnF5hfjhnd1gyij36hN1zSDaiDg3TFi7c7RbXTHDDUbRgGajXci8PJB3iJM1tZvh8AL5wD4o4DCo1VJoKk2PUWX3cUydB7brxWGUxC6mPxKMdXefXwHeB4khwugbvcsPgk8F6YB' );
+    $sig = $wk->base58Decode( '2mQvQFLQYJBe9ezj7YnAQFq7k9MxZstkrbcSKpLzv7vTxUfnbvWMUyyhJAc1u3vhkLqzQphKDecHcutUrhrHt22D' );
     $t->test( $wk->verify( $sig, $msg ) === true );
 }
 
@@ -133,11 +142,11 @@ for( $i = 1; $i <= 3; $i++ )
     }
 }
 
-$t->pretest( 'set_sodium', __LINE__ );
+$t->pretest( 'setSodium', __LINE__ );
 {
-    $wk->set_sodium();
-    $wk->set_privkey( '7VLYNhmuvAo5Us4mNGxWpzhMSdSSdEbEPFUDKSnA6eBv' );
-    $t->test( $wk->get_pubkey() !== 'EENPV1mRhUD9gSKbcWt84cqnfSGQP5LkCu5gMBfAanYH' );
+    $wk->setSodium();
+    $wk->setPrivateKey( '7VLYNhmuvAo5Us4mNGxWpzhMSdSSdEbEPFUDKSnA6eBv' );
+    $t->test( $wk->getPublicKey() !== 'EENPV1mRhUD9gSKbcWt84cqnfSGQP5LkCu5gMBfAanYH' );
 }
 
 for( $i = 1; $i <= 3; $i++ )
@@ -151,14 +160,14 @@ for( $i = 1; $i <= 3; $i++ )
 
 $t->pretest( 'rseed', __LINE__ );
 {
-    $wk->set_sodium( null );
-    $wk->set_privkey( '7VLYNhmuvAo5Us4mNGxWpzhMSdSSdEbEPFUDKSnA6eBv' );
-    $t->test( $wk->get_pubkey() === 'EENPV1mRhUD9gSKbcWt84cqnfSGQP5LkCu5gMBfAanYH' );
+    $wk->setSodium( false );
+    $wk->setPrivateKey( '7VLYNhmuvAo5Us4mNGxWpzhMSdSSdEbEPFUDKSnA6eBv' );
+    $t->test( $wk->getPublicKey() === 'EENPV1mRhUD9gSKbcWt84cqnfSGQP5LkCu5gMBfAanYH' );
 }
 
 $t->pretest( "sign/verify (rseed) without knowing", __LINE__ );
 {
-    $t->test( false === $wk->sign_rseed( $msg, '123' ) );
+    $t->test( false === $wk->signRSEED( $msg, '123' ) );
 }
 
 define( 'IREALLYKNOWWHAT_RSEED_MEANS', null );
@@ -167,7 +176,7 @@ for( $i = 1; $i <= 2; $i++ )
 {
     $t->pretest( "sign/verify (rseed) #$i", __LINE__ );
     {
-        $sig = $wk->sign_rseed( $msg, '123' );
+        $sig = $wk->signRSEED( $msg, '123' );
         if( $i === 1 )
         {
             $t->test( $wk->verify( $sig, $msg ) === true );

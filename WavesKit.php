@@ -1,9 +1,13 @@
 <?php
 
-interface IWavesKit
+namespace WavesKit;
+
+interface WavesKitInterface
 {
-    public function base58_encode( $data );
-    public function base58_decode( $data );
+    public function __construct( $chainId = 'W', $logFunction = null );
+
+    public function base58Encode( $data );
+    public function base58Decode( $data );
 
     public function sha256( $data );
     public function sha512( $data );
@@ -11,64 +15,80 @@ interface IWavesKit
     public function keccak256( $data );
     public function secureHash( $data );
 
-    public function sign( $msg );
-    public function sign_php( $msg );
-    public function sign_sodium( $msg );
-    public function sign_rseed( $msg, $rseed );
-    public function verify( $sign, $msg );
+    public function setSodium( $enabled = true );
+    public function getSodium();
 
-    public function random_seed();
-    public function set_seed( $seed );
-    public function set_privkey( $privkey );
-    public function set_pubkey( $pubkey );
-    public function set_address( $address );
+    public function getChainId();
+    public function randomSeed( $words = 15 );
+    public function isAddressValid( $address );
 
-    public function get_seed();
-    public function get_privkey();
-    public function get_pubkey();
-    public function get_address();
-    public function is_address_valid( $address );
+    public function setSeed( $seed, $raw = true );
 
-    public function set_sodium();
-    public function get_sodium();
+    public function setPrivateKey( $privateKey, $raw = false );
+    public function getPrivateKey( $raw = false );
+    public function setPublicKey( $publicKey, $raw = false );
+    public function getPublicKey( $raw = false );
+    public function setAddress( $address, $raw = false );
+    public function getAddress( $raw = false );
 
-    public function transfer_tx( $recipient, $amount, $options );
-    public function mass_tx( $recipients, $amounts, $options );
-    public function sign_tx( $tx );
+    public function sign( $data );
+    public function verify( $sig, $data );
 
-    public function set_node( $node );
-    public function get_node();
+    //public function txPayment( $options = null );
+    //public function txIssue( $options = null );
+    public function txTransfer( $recipient, $amount, $asset = null, $options = null );
+    //public function txReissue( $options = null );
+    //public function txBurn( $options = null );
+    //public function txOrder( $options = null );
+    //public function txLease( $options = null );
+    //public function txLeaseCancel( $options = null );
+    //public function txAlias( $options = null );
+    public function txMass( $recipients, $amounts, $asset = null, $options = null );
+    //public function txData( $options = null );
+    //public function txSetScript( $options = null );
+    //public function txSponsorship( $options = null );
+    //public function txSetAssetScript( $options = null );
+    
+    public function txBody( $tx );
+    public function txSign( $tx, $proofIndex = null );
+    public function txBroadcast( $tx );
 
-    public function fetch( $url, $method, $data );
-    public function timestamp();
+    public function setNodeAddress( $nodeAddress, $cacheLifetime = 1 );
+    public function getNodeAddress();    
+
+    public function fetch( $url, $post = false, $data = null, $log = true );
+    public function timestamp( $fromNode = false );
     public function height();
-    public function broadcast( $tx );
-    public function txid( $id );
-    public function utxid( $id );
-    public function ensure( $tx, $confirmations );
+    public function getTransactionById( $id, $unconfirmed = false );
+    public function ensure( $tx, $confirmations = 0, $sleep = 1, $lost = 30 );
     public function balance( $address );
 }
 
-class WavesKit implements IWavesKit
+class WavesKit implements WavesKitInterface
 {
     private $wk = [];
 
-    public function __construct( $network = 'W', $logger = null )
+    public function __construct( $chainId = 'W', $logFunction = null )
     {
-        $this->wk['network'] = $network;
-        if( isset( $logger ) )
-            $this->wk['logger'] = $logger;
+        $this->wk['chainId'] = $chainId;
+        if( isset( $logFunction ) )
+            $this->wk['logFunction'] = $logFunction;
     }
 
-    private function logger( $level, $message )
+    public function getChainId()
     {
-        if( isset( $this->wk['logger'] ) )
+        return $this->wk['chainId'];
+    }
+
+    public function log( $level, $message )
+    {
+        if( isset( $this->wk['logFunction'] ) )
         {
-            if( is_callable( $this->wk['logger'] ) )
-                return $this->wk['logger']( $level, $message );
-            elseif( $this->wk['logger'] === false )
+            if( is_callable( $this->wk['logFunction'] ) )
+                return $this->wk['logFunction']( $level, $message );
+            elseif( $this->wk['logFunction'] === false )
                 return;
-            elseif( is_array( $this->wk['logger'] ) && !in_array( $level, $this->wk['logger'], true ) )
+            elseif( is_array( $this->wk['logFunction'] ) && !in_array( $level, $this->wk['logFunction'], true ) )
                 return;
         }
 
@@ -93,8 +113,8 @@ class WavesKit implements IWavesKit
         echo $log . $message . PHP_EOL;
     }
 
-    public function base58_encode( $data ){ return $this->b58()->encode( $data ); }
-    public function base58_decode( $data ){ return $this->b58()->decode( $data ); }
+    public function base58Encode( $data ){ return $this->b58()->encode( $data ); }
+    public function base58Decode( $data ){ return $this->b58()->decode( $data ); }
 
     public function sha256( $data ){ return hash( 'sha256', $data, true ); }
     public function sha512( $data ){ return hash( 'sha512', $data, true ); }
@@ -102,11 +122,11 @@ class WavesKit implements IWavesKit
     public function keccak256( $data ){ return $this->k256()->hash( $data, 256, true ); }
     public function secureHash( $data ){ return $this->keccak256( $this->blake2b256( $data ) ); }
 
-    public function sign( $msg, $key = null ){ return $this->get_sodium() ? $this->sign_sodium( $msg, $key ) : $this->sign_php( $msg, $key ); }
-    public function sign_php( $msg, $key = null ){ return $this->c25519()->sign( $msg, isset( $key ) ? $key : $this->get_privkey( true ) ); }
-    public function sign_sodium( $msg, $key = null ){ return $this->c25519()->sign_sodium( $msg, isset( $key ) ? $key : $this->get_privkey( true ) ); }
-    public function sign_rseed( $msg, $rseed, $key = null ){ return $this->c25519()->sign( $msg, isset( $key ) ? $key : $this->get_privkey( true ), $rseed ); }
-    public function verify( $sign, $msg, $key = null ){ return $this->c25519()->verify( $sign, $msg, isset( $key ) ? $key : $this->get_pubkey( true ) ); }
+    public function sign( $data, $key = null ){ return $this->getSodium() ? $this->signSodium( $data, $key ) : $this->signPHP( $data, $key ); }
+    public function signPHP( $data, $key = null ){ return $this->c25519()->sign( $data, isset( $key ) ? $key : $this->getPrivateKey( true ) ); }
+    public function signSodium( $data, $key = null ){ return $this->c25519()->sign_sodium( $data, isset( $key ) ? $key : $this->getPrivateKey( true ) ); }
+    public function signRSEED( $data, $rseed, $key = null ){ return $this->c25519()->sign( $data, isset( $key ) ? $key : $this->getPrivateKey( true ), $rseed ); }
+    public function verify( $sig, $data, $key = null ){ return $this->c25519()->verify( $sig, $data, isset( $key ) ? $key : $this->getPublicKey( true ) ); }
 
     private function b58()
     {
@@ -115,7 +135,7 @@ class WavesKit implements IWavesKit
         if( !isset( $b58 ) )
         {
             require_once __DIR__ . '/third_party/secqru/include/secqru_abcode.php';
-            $b58 = new secqru_abcode( '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz' );
+            $b58 = new \secqru_abcode( '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz' );
         }
 
         return $b58;
@@ -128,7 +148,7 @@ class WavesKit implements IWavesKit
         if( !isset( $k256 ) )
         {
             require_once __DIR__ . '/third_party/php-keccak/src/Keccak.php';
-            $k256 = new kornrunner\Keccak();
+            $k256 = new \kornrunner\Keccak();
         }
 
         return $k256;
@@ -141,13 +161,13 @@ class WavesKit implements IWavesKit
         if( !isset( $c25519 ) )
         {
             require_once __DIR__ . '/third_party/curve25519-php/curve25519.php';
-            $c25519 = new curve25519\Curve25519();
+            $c25519 = new \curve25519\Curve25519();
         }
 
         return $c25519;
     }
 
-    public function random_seed( $words = 15 )
+    public function randomSeed( $words = 15 )
     {
         static $english;
 
@@ -172,13 +192,13 @@ class WavesKit implements IWavesKit
         return $seed;
     }
 
-    public function is_address_valid( $address, $raw = false )
+    public function isAddressValid( $address, $raw = false )
     {
-        $data = $raw ? $address : $this->base58_decode( $address );
+        $data = $raw ? $address : $this->base58Decode( $address );
         if( $data === false || strlen( $data ) !== 26 )
             return false;
 
-        if( $data[0] !== chr( 1 ) || $data[1] !== $this->wk['network'] )
+        if( $data[0] !== chr( 1 ) || $data[1] !== $this->wk['chainId'] )
             return false;
 
         $xsum = $this->secureHash( substr( $data, 0, 22 ) );
@@ -191,101 +211,117 @@ class WavesKit implements IWavesKit
     private function cleanup()
     {
         unset( $this->wk['seed'] );
-        unset( $this->wk['privkey'] );
-        unset( $this->wk['pubkey'] );
+        unset( $this->wk['privateKey'] );
+        unset( $this->wk['publicKey'] );
         unset( $this->wk['address'] );
+        unset( $this->wk['b58_privateKey'] );
+        unset( $this->wk['b58_publicKey'] );
+        unset( $this->wk['b58_address'] );
     }
 
-    public function set_seed( $seed, $raw = true )
+    public function setSeed( $seed, $raw = true )
     {
         $this->cleanup();
-        $this->wk['seed'] = $raw ? $seed : $this->base58_decode( $seed );
+        $this->getPrivateKey( true, $raw ? $seed : $this->base58Decode( $seed ) );
     }
 
-    public function get_seed( $raw = false )
-    {
-        if( !isset( $this->wk['seed'] ) )
-            return false;
-
-        return $raw ? $this->wk['seed'] : $this->base58_encode( $this->wk['seed'] );
-    }
-
-    public function set_privkey( $privkey, $raw = false )
+    public function setPrivateKey( $privateKey, $raw = false )
     {
         $this->cleanup();
-        $this->wk['privkey'] = $raw ? $privkey : $this->base58_decode( $privkey );
+        $this->wk['privateKey'] = $raw ? $privateKey : $this->base58Decode( $privateKey );
     }
 
-    public function get_privkey( $raw = false )
+    public function getPrivateKey( $raw = false, $seed = null )
     {
-        if( !isset( $this->wk['privkey'] ) )
+        if( !isset( $this->wk['privateKey'] ) )
         {
-            $temp = $this->get_seed( true );
-            if( $temp === false )
+            if( !isset( $seed ) )
                 return false;
+            $temp = $seed;
             $temp = chr( 0 ) . chr( 0 ) . chr( 0 ) . chr( 0 ) . $temp;
             $temp = $this->secureHash( $temp );
             $temp = $this->sha256( $temp );
-            $this->wk['privkey'] = $temp;
+            $this->wk['privateKey'] = $temp;
         }
 
-        return $raw ? $this->wk['privkey'] : $this->base58_encode( $this->wk['privkey'] );
+        if( $raw )
+            return $this->wk['privateKey'];
+
+        if( !isset( $this->wk['b58_privateKey'] ) )
+            $this->wk['b58_privateKey'] = $this->base58Encode( $this->wk['privateKey'] );
+
+        return $this->wk['b58_privateKey'];
     }
 
-    public function set_pubkey( $pubkey, $raw = false )
+    public function setPublicKey( $publicKey, $raw = false )
     {
         $this->cleanup();
-        $this->wk['pubkey'] = $raw ? $pubkey : $this->base58_decode( $pubkey );
+        $this->wk['publicKey'] = $raw ? $publicKey : $this->base58Decode( $publicKey );
     }
 
-    public function get_pubkey( $raw = false )
+    public function getPublicKey( $raw = false )
     {
-        if( !isset( $this->wk['pubkey'] ) )
+        if( !isset( $this->wk['publicKey'] ) )
         {
-            $temp = $this->get_privkey( true );
+            $temp = $this->getPrivateKey( true );
             if( $temp === false || strlen( $temp ) !== 32 )
                 return false;
             if( isset( $this->wk['sodium'] ) && $this->wk['sodium'] )
                 $temp = substr( $this->sha512( $temp ), 0, 32 );
             $temp = sodium_crypto_box_publickey_from_secretkey( $temp );
-            $this->wk['pubkey'] = $temp;
+            $this->wk['publicKey'] = $temp;
         }
 
-        return $raw ? $this->wk['pubkey'] : $this->base58_encode( $this->wk['pubkey'] );
+        if( $raw )
+            return $this->wk['publicKey'];
+
+        if( !isset( $this->wk['b58_publicKey'] ) )
+            $this->wk['b58_publicKey'] = $this->base58Encode( $this->wk['publicKey'] );
+
+        return $this->wk['b58_publicKey'];
     }
 
-    public function set_address( $address, $raw = false )
+    public function setAddress( $address, $raw = false )
     {
         $this->cleanup();
-        if( !$this->is_address_valid( $address, $raw ) )
+        if( !$this->isAddressValid( $address, $raw ) )
             return;
 
-        $this->wk['address'] = $raw ? $address : $this->base58_decode( $address );
+        $this->wk['address'] = $raw ? $address : $this->base58Decode( $address );
     }
 
-    public function get_address( $raw = false )
+    public function getAddress( $raw = false )
     {
         if( !isset( $this->wk['address'] ) )
         {
-            $temp = $this->get_pubkey( true );
+            $temp = $this->getPublicKey( true );
             if( $temp === false || strlen( $temp ) !== 32 )
                 return false;
             $temp = $this->secureHash( $temp );
-            $temp = chr( 1 ) . $this->wk['network'] . substr( $temp, 0, 20 );
+            $temp = chr( 1 ) . $this->wk['chainId'] . substr( $temp, 0, 20 );
             $temp .= substr( $this->secureHash( $temp ), 0, 4 );
             $this->wk['address'] = $temp;
         }
 
-        return $raw ? $this->wk['address'] : $this->base58_encode( $this->wk['address'] );
+        if( $raw )
+            return $this->wk['address'];
+
+        if( !isset( $this->wk['b58_address'] ) )
+            $this->wk['b58_address'] = $this->base58Encode( $this->wk['address'] );
+
+        return $this->wk['b58_address'];
     }
 
-    public function set_sodium( $true = true )
+    public function setSodium( $enabled = true )
     {
         $this->cleanup();
-        $this->wk['sodium'] = $true;
+        if( $enabled )
+            $this->wk['sodium'] = $enabled;
+        else
+            unset( $this->wk['sodium'] );
     }
 
-    public function get_sodium()
+    public function getSodium()
     {
         return isset( $this->wk['sodium'] );
     }
@@ -299,15 +335,15 @@ class WavesKit implements IWavesKit
     {
         static $curl;
 
-        if( !isset( $this->wk['node'] ) )
+        if( !isset( $this->wk['nodeAddress'] ) )
         {
-            switch( $this->wk['network'] )
+            switch( $this->wk['chainId'] )
             {
                 case 'W':
-                    $this->set_node( 'https://nodes.wavesplatform.com' );
+                    $this->setNodeAddress( 'https://nodes.wavesplatform.com' );
                     break;
                 case 'T':
-                    $this->set_node( 'https://testnode2.wavesnodes.com' );
+                    $this->setNodeAddress( 'https://testnode2.wavesnodes.com' );
                     break;
                 default:
                     return false;
@@ -322,7 +358,7 @@ class WavesKit implements IWavesKit
             if( false === curl_setopt_array( $temp, [
                 CURLOPT_CONNECTTIMEOUT  => 5,
                 CURLOPT_TIMEOUT         => 15,
-                CURLOPT_URL             => $this->wk['node'],
+                CURLOPT_URL             => $this->wk['nodeAddress'],
                 CURLOPT_CONNECT_ONLY    => true,
                 CURLOPT_CAINFO          => __DIR__ . '/third_party/ca-bundle/res/cacert.pem',
                 //CURLOPT_SSL_VERIFYPEER  => false, // not secure
@@ -331,7 +367,7 @@ class WavesKit implements IWavesKit
 
             if( !curl_exec( $temp ) && 0 !== ( $errno = curl_errno( $temp ) ) )
             {
-                $this->logger( 'e', "curl error $errno: " . curl_error( $temp ) );
+                $this->log( 'e', "curl error $errno: " . curl_error( $temp ) );
                 curl_close( $temp );
                 return false;
             }
@@ -353,29 +389,27 @@ class WavesKit implements IWavesKit
         return $curl;
     }
 
-    public function set_node( $node, $cachetime = 1 )
+    public function setNodeAddress( $nodeAddress, $cacheLifetime = 1 )
     {
-        $this->wk['node'] = $node;
-        $this->wk['cachetime'] = $cachetime;
-        $this->reset_cache();
+        $this->wk['nodeAddress'] = $nodeAddress;
+        $this->wk['cacheLifetime'] = $cacheLifetime;
+        $this->resetNodeCache();
     }
 
-    private function reset_cache()
+    public function getNodeAddress()
     {
-        $this->wk['cache'] = [ [], [] ];
+        return isset( $this->wk['nodeAddress'] ) ? $this->wk['nodeAddress'] : false;
     }
 
-    public function get_node(){ return isset( $this->wk['node'] ) ? $this->wk['node'] : false; }
-
-    public function fetch( $url, $post = false, $data = null, $log = true )
+    public function fetch( $url, $post = false, $data = null, $ignoreCodes = null )
     {
         if( false === ( $curl = $this->curl() ) )
             return false;
 
-        if( !$post && null !== ( $data = $this->get_cache_data( $url ) ) )
+        if( !$post && null !== ( $data = $this->getNodeCache( $url ) ) )
             return $data;
 
-        $host = $this->wk['node'];
+        $host = $this->wk['nodeAddress'];
         $options = [
             CURLOPT_URL             => $host . $url,
             CURLOPT_POST            => $post,
@@ -395,31 +429,31 @@ class WavesKit implements IWavesKit
 
         if( 0 !== ( $errno = curl_errno( $curl ) ) || $code !== 200 || false === $data )
         {
-            $curl_error = curl_error( $curl );
-            if( $log )
+            if( !isset( $ignoreCodes ) || $errno !== 0 || !in_array( $code, $ignoreCodes ) )
             {
+                $curl_error = curl_error( $curl );
                 if( is_string( $data ) && false !== ( $json = $this->json_decode( $data ) ) && isset( $json['error'] ) )
-                    $this->logger( 'e', "$host ({$json['error']})" . ( isset( $json['message'] ) ? " ({$json['message']})" : '' ) );
+                    $this->log( 'e', "$host ({$json['error']})" . ( isset( $json['message'] ) ? " ({$json['message']})" : '' ) );
                 else
-                    $this->logger( 'e', "$host (HTTP $code) (cURL $errno" . ( empty( $curl_error ) ? ')' : ":$curl_error)" ) );
+                    $this->log( 'e', "$host (HTTP $code) (cURL $errno" . ( empty( $curl_error ) ? ')' : ":$curl_error)" ) );
             }
 
             $data = false;
         }
 
         if( !$post )
-            $this->set_cache_data( $url, $data );
+            $this->setNodeCache( $url, $data );
 
         return $data;
     }
 
-    private function set_cache_data( $newkey, $data )
+    private function setNodeCache( $newkey, $data )
     {
         $now = microtime( true );
-        $cachetime = $this->wk['cachetime'];
+        $cacheLifetime = $this->wk['cacheLifetime'];
 
         foreach( $this->wk['cache'][1] as $key => $time )
-            if( $now - $time > $cachetime )
+            if( $now - $time > $cacheLifetime )
             {
                 unset( $this->wk['cache'][0][$key] );
                 unset( $this->wk['cache'][1][$key] );
@@ -429,12 +463,12 @@ class WavesKit implements IWavesKit
         $this->wk['cache'][1][$newkey] = $now;
     }
 
-    private function get_cache_data( $key )
+    private function getNodeCache( $key )
     {
-        $cachetime = $this->wk['cachetime'];
-        if( $cachetime > 0 && isset( $this->wk['cache'][0][$key] ) )
+        $cacheLifetime = $this->wk['cacheLifetime'];
+        if( $cacheLifetime > 0 && isset( $this->wk['cache'][0][$key] ) )
         {
-            if( microtime( true ) - $this->wk['cache'][1][$key] < $cachetime )
+            if( microtime( true ) - $this->wk['cache'][1][$key] < $cacheLifetime )
                 return $this->wk['cache'][0][$key];
 
             unset( $this->wk['cache'][0][$key] );
@@ -444,9 +478,14 @@ class WavesKit implements IWavesKit
         return null;
     }
 
-    public function timestamp( $node = false )
+    private function resetNodeCache()
     {
-        if( $node )
+        $this->wk['cache'] = [ [], [] ];
+    }
+
+    public function timestamp( $fromNode = false )
+    {
+        if( $fromNode )
         {
             if( false === ( $json = $this->fetch( '/utils/time' ) ) )
                 return false;
@@ -460,16 +499,11 @@ class WavesKit implements IWavesKit
             return $json['NTP'];
         }
 
-        static $last = 0;
         list( $usec, $sec ) = explode( " ", microtime() );
-        $timestamp = (int)(( $sec + $usec ) * 1000 );
-        if( $last === $timestamp )
-            exit;
-        $last = $timestamp;
-        return $timestamp;
+        return (int)(( $sec + $usec ) * 1000 );
     }
 
-    public function height( $node = false )
+    public function height()
     {
         if( false === ( $json = $this->fetch( '/blocks/height' ) ) )
             return false;
@@ -483,7 +517,7 @@ class WavesKit implements IWavesKit
         return $json['height'];
     }
 
-    public function broadcast( $tx )
+    public function txBroadcast( $tx )
     {
         if( false === ( $json = $this->fetch( '/transactions/broadcast', true, json_encode( $tx ) ) ) )
             return false;
@@ -497,20 +531,10 @@ class WavesKit implements IWavesKit
         return $json;
     }
 
-    public function txid( $id )
+    public function getTransactionById( $id, $unconfirmed = false )
     {
-        if( false === ( $json = $this->fetch( "/transactions/info/$id", false, null, false ) ) )
-            return false;
-
-        if( false === ( $json = $this->json_decode( $json ) ) )
-            return false;
-
-        return $json;
-    }
-
-    public function utxid( $id )
-    {
-        if( false === ( $json = $this->fetch( "/transactions/unconfirmed/info/$id", false, null, false ) ) )
+        $unconfirmed = $unconfirmed ? '/unconfirmed' : '';
+        if( false === ( $json = $this->fetch( "/transactions$unconfirmed/info/$id", false, null, [ 404 ] ) ) )
             return false;
 
         if( false === ( $json = $this->json_decode( $json ) ) )
@@ -522,34 +546,54 @@ class WavesKit implements IWavesKit
     public function ensure( $tx, $confirmations = 0, $sleep = 1, $timeout = 30 )
     {
         $id = $tx['id'];
-        $n = 0;
+        $n = 1;
         $n_utx = 0;
 
-        while( false === ( $tx = $this->txid( $id ) ) )
+        while( false === ( $tx = $this->getTransactionById( $id ) ) )
         {
             if( !$sleep )
                 return false;
 
-            $n++;
-
-            if( $n_utx && $n - $n_utx > $timeout )
+            $n_diff = $n - $n_utx;
+            if( $n_utx )
             {
-                $this->logger( 'e', "($id) lost" );
-                return false;
+                $n_diff = $n - $n_utx;
+                if( $n_diff > $timeout )
+                {
+                    if( false === ( $tx = $this->getTransactionById( $id, true ) ) )
+                    {
+                        $this->log( 'e', "($id) not found (timeout reached)" );
+                        return false;
+                    }
+    
+                    $this->log( 'w', "($id) found in unconfirmed again ($n)" );
+                    $n_utx = 0;
+                    continue;
+                }
+
+                if( $n_diff > 1 )
+                {
+                    $counter = $n - $n_utx;
+                    $this->log( 'i', "($id) still unconfirmed ($n) (timeout $n_diff/$timeout)" );
+                }
+            }
+            else
+            {
+                if( false === ( $tx = $this->getTransactionById( $id, true ) ) )
+                {
+                    $this->log( 'i', "($id) not in unconfirmed ($n)" );
+                    $n_utx = $n;
+                    continue;
+                }
+
+                $this->log( 'i', "($id) unconfirmed ($n)" );
             }
 
-            if( !$n_utx && false === ( $tx = $this->utxid( $id ) ) )
-            {
-                $this->logger( 'i', "($id) not in unconfirmed #$n" );
-                $n_utx = $n;
-                continue;
-            }
-
-            $this->logger( 'i', "($id) unconfirmed #$n" );
             sleep( $sleep );
+            $n++;
         }
 
-        $this->logger( 's', "($id) confirmed" );
+        $this->log( 's', "($id) confirmed ($n)" );
 
         if( $confirmations > 0 )
         {
@@ -560,18 +604,18 @@ class WavesKit implements IWavesKit
                     return false;
 
                 $n++;
-                $this->logger( 'i', "($id) $c/$confirmations confirmations #$n" );
+                $this->log( 'i', "($id) $c/$confirmations confirmations ($n)" );
                 sleep( $sleep > 1 ? $sleep : $sleep * $confirmations );
             }
 
-            if( $tx !== $this->txid( $id ) )
+            if( $tx !== $this->getTransactionById( $id ) )
             {
-                $this->logger( 'w', "($id) change detected" );
-                $this->reset_cache();
+                $this->log( 'w', "($id) change detected" );
+                $this->resetNodeCache();
                 return $this->ensure( $tx, $confirmations, $timeout );
             }
 
-            $this->logger( 's', "($id) reached $c confirmations" );
+            $this->log( 's', "($id) reached $c confirmations" );
             $tx['confirmations'] = $c;
         }
 
@@ -579,7 +623,7 @@ class WavesKit implements IWavesKit
     }
     public function balance( $address = null )
     {
-        if( false === ( $address = isset( $address ) ? $address : $this->get_address() ) )
+        if( false === ( $address = isset( $address ) ? $address : $this->getAddress() ) )
             return false;
 
         if( false === ( $json = $this->fetch( "/addresses/balance/$address" ) ) )
@@ -604,15 +648,36 @@ class WavesKit implements IWavesKit
         return $balance;
     }
 
-    public function transfer_tx( $recipient, $amount, $options )
+    private function recipientAddressOrAlias( $recipient )
     {
+        if( strlen( $recipient ) === 35 )
+            return $recipient;
+
+        return 'alias:' . $this->getChainId() . ":$recipient";
+    }
+
+    private function recipientAddressOrAliasBytes( $recipient )
+    {
+        if( $recipient[0] === '3' )
+            return $this->base58Decode( $recipient );
+
+        $network = $recipient[6];
+        $recipient = substr( $recipient, 8 );
+        return chr( 2 ) . $network . pack( 'n', strlen( $recipient ) ) . $recipient;
+    }
+
+    public function txTransfer( $recipient, $amount, $asset = null, $options = null )
+    {
+        if( isset( $asset ) && ( $asset === 0 || ( strlen( $asset ) === 5 && strtoupper( $asset ) === 'WAVES' ) ) )
+            unset( $asset );
+
         $tx = [];
         $tx['version'] = 2;
         $tx['type'] = 4;
-        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->get_address();
-        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->get_pubkey();
-        $tx['recipient'] = $recipient;
-        if( isset( $options['assetId'] ) ) $tx['assetId'] = $options['assetId'];
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['recipient'] = $this->recipientAddressOrAlias( $recipient );
+        if( isset( $asset ) ) $tx['assetId'] = $asset;
         $tx['amount'] = $amount;
         if( isset( $options['feeAssetId'] ) ) $tx['feeAssetId'] = $options['feeAssetId'];
         $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000;
@@ -622,64 +687,67 @@ class WavesKit implements IWavesKit
         return $tx;
     }
 
-    public function mass_tx( $recipients, $amounts, $options )
+    public function txMass( $recipients, $amounts, $asset = null, $options = null )
     {
         $n = count( $recipients );
         if( $n !== count( $amounts ) )
         {
-            $this->logger( 'e', 'recipients !== amounts' );
+            $this->log( 'e', 'recipients !== amounts' );
             return false;
         }
+
+        if( isset( $asset ) && ( $asset === 0 || ( strlen( $asset ) === 5 && strtoupper( $asset ) === 'WAVES' ) ) )
+            unset( $asset );
 
         $tx = [];
         $tx['type'] = 11;
         $tx['version'] = 1;
-        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->get_address();
-        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->get_pubkey();
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
         $tx['fee'] = 100000 + $n * 50000 + ( $n % 2 ) * 50000;
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
-        if( isset( $options['assetId'] ) ) $tx['assetId'] = $options['assetId'];
+        if( isset( $asset ) ) $tx['assetId'] = $asset;
         if( isset( $options['attachment'] ) ) $tx['attachment'] = $options['attachment'];
 
         $tx['transfers'] = [];
         for( $i = 0; $i < $n; $i++ )
-            $tx['transfers'][] = [ 'recipient' => $recipients[$i], 'amount' => $amounts[$i] ];
+            $tx['transfers'][] = [ 'recipient' => $this->recipientAddressOrAlias( $recipients[$i] ), 'amount' => $amounts[$i] ];
 
         return $tx;
     }
 
-    public function sign_tx( $tx, $proofnum = null )
+    public function txBody( $tx )
     {
         $body = '';
 
         switch( $tx['type'] )
         {
             case 4:
-                $attachment = isset( $tx['attachment'] ) ? $this->base58_decode( $tx['attachment'] ) : null;
+                $attachment = isset( $tx['attachment'] ) ? $this->base58Decode( $tx['attachment'] ) : null;
 
                 $body .= chr( 4 );
                 $body .= chr( 2 );
-                $body .= $this->base58_decode( $tx['senderPublicKey'] );
-                $body .= isset( $tx['assetId'] ) ? chr( 1 ) . $this->base58_decode( $tx['assetId'] ) : chr( 0 );
-                $body .= isset( $tx['feeAssetId'] ) ? chr( 1 ) . $this->base58_decode( $tx['feeAssetId'] ) : chr( 0 );
+                $body .= $this->base58Decode( $tx['senderPublicKey'] );
+                $body .= isset( $tx['assetId'] ) ? chr( 1 ) . $this->base58Decode( $tx['assetId'] ) : chr( 0 );
+                $body .= isset( $tx['feeAssetId'] ) ? chr( 1 ) . $this->base58Decode( $tx['feeAssetId'] ) : chr( 0 );
                 $body .= pack( 'J', $tx['timestamp'] );
                 $body .= pack( 'J', $tx['amount'] );
                 $body .= pack( 'J', $tx['fee'] );
-                $body .= $this->base58_decode( $tx['recipient'] );
+                $body .= $this->recipientAddressOrAliasBytes( $tx['recipient'] );
                 $body .= isset( $attachment ) ? pack( 'n', strlen( $attachment ) ) . $attachment : chr( 0 ) . chr( 0 );
                 break;
             case 11:
-                $attachment = isset( $tx['attachment'] ) ? $this->base58_decode( $tx['attachment'] ) : null;
+                $attachment = isset( $tx['attachment'] ) ? $this->base58Decode( $tx['attachment'] ) : null;
                 $n = count( $tx['transfers'] );
 
                 $body .= chr( 11 );
                 $body .= chr( 1 );
-                $body .= $this->base58_decode( $tx['senderPublicKey'] );
-                $body .= isset( $tx['assetId'] ) ? chr( 1 ) . $this->base58_decode( $tx['assetId'] ) : chr( 0 );
+                $body .= $this->base58Decode( $tx['senderPublicKey'] );
+                $body .= isset( $tx['assetId'] ) ? chr( 1 ) . $this->base58Decode( $tx['assetId'] ) : chr( 0 );
                 $body .= pack( 'n', $n );
                 for( $i = 0; $i < $n; $i++ )
                 {
-                    $body .= $this->base58_decode( $tx['transfers'][$i]['recipient'] );
+                    $body .= $this->recipientAddressOrAliasBytes( $tx['transfers'][$i]['recipient'] );
                     $body .= pack( 'J', $tx['transfers'][$i]['amount'] );
                 }
                 $body .= pack( 'J', $tx['timestamp'] );
@@ -690,27 +758,59 @@ class WavesKit implements IWavesKit
                 return false;
         }
 
+        return $body;
+    }
+
+    public function txSign( $tx, $proofIndex = null )
+    {
+        if( false === ( $body = $this->txBody( $tx ) ) )
+            return false;        
+
         $sig = $this->sign( $body );
         $id = $this->blake2b256( $body );
 
         if( false === $sig || false === $id )
             return false;
 
-        $tx['id'] = $this->base58_encode( $id );
+        $tx['id'] = $this->base58Encode( $id );
 
-        $sig = $this->base58_encode( $sig );
+        $sig = $this->base58Encode( $sig );
 
         if( !isset( $tx['proofs'] ) )
             $tx['proofs'] = [];
 
-        if( !isset( $proofnum ) )
+        if( !isset( $proofIndex ) )
             $tx['proofs'][] = $sig;
         else
         {
-            $tx['proofs'][$proofnum] = $sig;
+            $tx['proofs'][$proofIndex] = $sig;
             ksort( $tx['proofs'] );
         }
 
         return $tx;
+    }
+
+    public function setCryptex( $secret, $iv = 4, $mac = 4, $hash = 'sha256' )
+    {
+        if( !isset( $this->wk['cryptex'] ) )
+            require_once __DIR__ . '/third_party/secqru/include/secqru_cryptex.php';
+
+        $this->wk['cryptex'] = new \secqru_cryptex( $secret, $iv, $mac, $hash );
+    }
+
+    public function encryptex( $data )
+    {
+        if( !isset( $this->wk['cryptex'] ) )
+            return false;
+
+        return $this->wk['cryptex']->cryptex( $data );
+    }
+
+    public function decryptex( $data )
+    {
+        if( !isset( $this->wk['cryptex'] ) )
+            return false;
+
+        return $this->wk['cryptex']->decryptex( $data );
     }
 }

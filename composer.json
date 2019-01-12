@@ -1,0 +1,28 @@
+{
+    "name": "deemru/waveskit",
+    "description": "Waves Development Kit for PHP",
+    "keywords": [ "wavesplatform" ],
+    "homepage": "http://github.com/deemru/WavesKitPHP",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Dmitrii Pichulin",
+            "email": "deem@deem.ru"
+        }
+    ],
+    "require": {
+        "php": "^7.2",
+        "ext-curl": "*",
+        "ext-gmp": "*",
+        "ext-sodium": "*"
+    },
+    "autoload": {
+        "psr-4": { "WavesKit\\": "" }
+    },
+    "scripts": {
+        "test": [
+            "@php test/selftest.php"
+        ]
+    }
+}
