@@ -1,7 +1,7 @@
 <?php
 
-require_once __DIR__ .'/../WavesKit.php';
-use WavesKit\WavesKit;
+require '../vendor/autoload.php';
+use deemru\WavesKit;
 
 $wk = new WavesKit();
 

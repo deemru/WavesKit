@@ -12,13 +12,17 @@
         }
     ],
     "require": {
-        "php": "^7.2",
+        "php": ">=7.2",
+        "deemru/abcode": "1.0.*",
+        "deemru/curve25519": "1.0.*",
+        "kornrunner/keccak": "1.0.3",
+        "composer/ca-bundle": "*",
         "ext-curl": "*",
         "ext-gmp": "*",
         "ext-sodium": "*"
     },
     "autoload": {
-        "psr-4": { "WavesKit\\": "" }
+        "psr-4": { "deemru\\": "" }
     },
     "scripts": {
         "test": [

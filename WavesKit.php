@@ -1,6 +1,11 @@
 <?php
 
-namespace WavesKit;
+namespace deemru;
+
+use deemru\ABCode;
+use deemru\Curve25519;
+use kornrunner\Keccak;
+use Composer\CaBundle\CaBundle;
 
 interface WavesKitInterface
 {
@@ -133,10 +138,7 @@ class WavesKit implements WavesKitInterface
         static $b58;
 
         if( !isset( $b58 ) )
-        {
-            require_once __DIR__ . '/third_party/secqru/include/secqru_abcode.php';
-            $b58 = new \secqru_abcode( '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz' );
-        }
+            $b58 = new ABCode( '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz' );
 
         return $b58;
     }
@@ -146,10 +148,7 @@ class WavesKit implements WavesKitInterface
         static $k256;
 
         if( !isset( $k256 ) )
-        {
-            require_once __DIR__ . '/third_party/php-keccak/src/Keccak.php';
-            $k256 = new \kornrunner\Keccak();
-        }
+            $k256 = new Keccak();
 
         return $k256;
     }
@@ -159,10 +158,7 @@ class WavesKit implements WavesKitInterface
         static $c25519;
 
         if( !isset( $c25519 ) )
-        {
-            require_once __DIR__ . '/third_party/curve25519-php/curve25519.php';
-            $c25519 = new \curve25519\Curve25519();
-        }
+            $c25519 = new Curve25519();
 
         return $c25519;
     }
@@ -173,7 +169,7 @@ class WavesKit implements WavesKitInterface
 
         if( !isset( $english ) )
         {
-            $temp = file_get_contents( __DIR__ . '/third_party/english.txt' );
+            $temp = file_get_contents( __DIR__ . '/support/english.txt' );
             if( $temp === false )
                 return false;
 
@@ -360,7 +356,7 @@ class WavesKit implements WavesKitInterface
                 CURLOPT_TIMEOUT         => 15,
                 CURLOPT_URL             => $this->wk['nodeAddress'],
                 CURLOPT_CONNECT_ONLY    => true,
-                CURLOPT_CAINFO          => __DIR__ . '/third_party/ca-bundle/res/cacert.pem',
+                CURLOPT_CAINFO          => CaBundle::getBundledCaBundlePath(),
                 //CURLOPT_SSL_VERIFYPEER  => false, // not secure
             ] ) )
                 return false;
