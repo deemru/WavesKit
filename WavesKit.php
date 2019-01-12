@@ -568,10 +568,7 @@ class WavesKit implements WavesKitInterface
                 }
 
                 if( $n_diff > 1 )
-                {
-                    $counter = $n - $n_utx;
                     $this->log( 'i', "($id) still unconfirmed ($n) (timeout $n_diff/$timeout)" );
-                }
             }
             else
             {
