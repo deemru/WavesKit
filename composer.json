@@ -17,6 +17,7 @@
         "deemru/curve25519": "1.0.*",
         "kornrunner/keccak": "1.0.3",
         "composer/ca-bundle": "*",
+        "deemru/cryptash": "1.0.*",
         "ext-curl": "*",
         "ext-gmp": "*",
         "ext-sodium": "*"
