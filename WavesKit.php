@@ -794,7 +794,7 @@ class WavesKit implements WavesKitInterface
         if( !isset( $this->wk['cryptash'] ) )
             return false;
 
-        return $this->wk['cryptash']->cryptash( $data );
+        return $this->wk['cryptash']->encryptash( $data );
     }
 
     public function decryptash( $data )
