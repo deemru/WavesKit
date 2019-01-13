@@ -1,6 +1,6 @@
 {
     "name": "deemru/waveskit",
-    "description": "Waves Platfrom Development Kit",
+    "description": "Waves Platform Development Kit",
     "keywords": [ "wavesplatform" ],
     "homepage": "http://github.com/deemru/WavesKit",
     "type": "library",
