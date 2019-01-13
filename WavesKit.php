@@ -6,6 +6,7 @@ use deemru\ABCode;
 use deemru\Curve25519;
 use kornrunner\Keccak;
 use Composer\CaBundle\CaBundle;
+use deemru\Cryptash;
 
 interface WavesKitInterface
 {
@@ -783,27 +784,24 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
-    public function setCryptex( $secret, $iv = 4, $mac = 4, $hash = 'sha256' )
+    public function setCryptash( $secret, $iv = 4, $mac = 4, $hash = 'sha256' )
     {
-        if( !isset( $this->wk['cryptex'] ) )
-            require_once __DIR__ . '/third_party/secqru/include/secqru_cryptex.php';
-
-        $this->wk['cryptex'] = new \secqru_cryptex( $secret, $iv, $mac, $hash );
+        $this->wk['cryptash'] = new Cryptash( $secret, $iv, $mac, $hash );
     }
 
-    public function encryptex( $data )
+    public function encryptash( $data )
     {
-        if( !isset( $this->wk['cryptex'] ) )
+        if( !isset( $this->wk['cryptash'] ) )
             return false;
 
-        return $this->wk['cryptex']->cryptex( $data );
+        return $this->wk['cryptash']->cryptash( $data );
     }
 
-    public function decryptex( $data )
+    public function decryptash( $data )
     {
-        if( !isset( $this->wk['cryptex'] ) )
+        if( !isset( $this->wk['cryptash'] ) )
             return false;
 
-        return $this->wk['cryptex']->decryptex( $data );
+        return $this->wk['cryptash']->decryptash( $data );
     }
 }

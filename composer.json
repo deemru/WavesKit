@@ -2,7 +2,7 @@
     "name": "deemru/waveskit",
     "description": "Waves Development Kit for PHP",
     "keywords": [ "wavesplatform" ],
-    "homepage": "http://github.com/deemru/WavesKitPHP",
+    "homepage": "http://github.com/deemru/WavesKit",
     "type": "library",
     "license": "MIT",
     "authors": [
