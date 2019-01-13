@@ -1,6 +1,6 @@
 {
     "name": "deemru/waveskit",
-    "description": "Waves Development Kit for PHP",
+    "description": "Waves Platfrom Development Kit",
     "keywords": [ "wavesplatform" ],
     "homepage": "http://github.com/deemru/WavesKit",
     "type": "library",
