@@ -172,7 +172,7 @@ class WavesKit implements WavesKitInterface
 
         if( !isset( $english ) )
         {
-            $temp = file_get_contents( __DIR__ . '/support/english.txt' );
+            $temp = file_get_contents( __DIR__ . '/../support/english.txt' );
             if( $temp === false )
                 return false;
 
