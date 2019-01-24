@@ -23,7 +23,7 @@
         "ext-sodium": "*"
     },
     "autoload": {
-        "psr-4": { "deemru\\": "" }
+        "psr-4": { "deemru\\": "src/" }
     },
     "scripts": {
         "test": [
