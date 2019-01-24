@@ -16,7 +16,6 @@ interface WavesKitInterface
     public function base58Decode( $data );
 
     public function sha256( $data );
-    public function sha512( $data );
     public function blake2b256( $data );
     public function keccak256( $data );
     public function secureHash( $data );
@@ -119,8 +118,8 @@ class WavesKit implements WavesKitInterface
         echo $log . $message . PHP_EOL;
     }
 
-    public function base58Encode( $data ){ return $this->b58()->encode( $data ); }
-    public function base58Decode( $data ){ return $this->b58()->decode( $data ); }
+    public function base58Encode( $data ){ return ABCode::base58()->encode( $data ); }
+    public function base58Decode( $data ){ return ABCode::base58()->decode( $data ); }
 
     public function sha256( $data ){ return hash( 'sha256', $data, true ); }
     public function sha512( $data ){ return hash( 'sha512', $data, true ); }
@@ -128,21 +127,24 @@ class WavesKit implements WavesKitInterface
     public function keccak256( $data ){ return $this->k256()->hash( $data, 256, true ); }
     public function secureHash( $data ){ return $this->keccak256( $this->blake2b256( $data ) ); }
 
-    public function sign( $data, $key = null ){ return $this->getSodium() ? $this->signSodium( $data, $key ) : $this->signPHP( $data, $key ); }
-    public function signPHP( $data, $key = null ){ return $this->c25519()->sign( $data, isset( $key ) ? $key : $this->getPrivateKey( true ) ); }
-    public function signSodium( $data, $key = null ){ return $this->c25519()->sign_sodium( $data, isset( $key ) ? $key : $this->getPrivateKey( true ) ); }
-    public function signRSEED( $data, $rseed, $key = null ){ return $this->c25519()->sign( $data, isset( $key ) ? $key : $this->getPrivateKey( true ), $rseed ); }
-    public function verify( $sig, $data, $key = null ){ return $this->c25519()->verify( $sig, $data, isset( $key ) ? $key : $this->getPublicKey( true ) ); }
-
-    private function b58()
+    public function sign( $data, $key = null )
     {
-        static $b58;
+        if( $this->getSodium() )
+            return $this->sign_sodium( $data, $key );
 
-        if( !isset( $b58 ) )
-            $b58 = new ABCode( '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz' );
+        if( isset( $this->wk['rseed'] ) )
+        {
+            $rseed = $this->wk['rseed'];
+            unset( $this->wk['rseed'] );
+            return $this->sign_rseed( $data, $rseed, $key );
+        }
 
-        return $b58;
+        return $this->sign_php( $data, $key );
     }
+    private function sign_php( $data, $key = null ){ return $this->c25519()->sign( $data, isset( $key ) ? $key : $this->getPrivateKey( true ) ); }
+    private function sign_sodium( $data, $key = null ){ return $this->c25519()->sign_sodium( $data, isset( $key ) ? $key : $this->getPrivateKey( true ) ); }
+    private function sign_rseed( $data, $rseed, $key = null ){ return $this->c25519()->sign( $data, isset( $key ) ? $key : $this->getPrivateKey( true ), $rseed ); }
+    public function verify( $sig, $data, $key = null ){ return $this->c25519()->verify( $sig, $data, isset( $key ) ? $key : $this->getPublicKey( true ) ); }
 
     private function k256()
     {
@@ -205,14 +207,18 @@ class WavesKit implements WavesKitInterface
         return true;
     }
 
-    private function cleanup()
+    private function cleanup( $full = true )
     {
-        unset( $this->wk['seed'] );
-        unset( $this->wk['privateKey'] );
+        if( $full )
+        {
+            unset( $this->wk['seed'] );
+            unset( $this->wk['privateKey'] );
+            unset( $this->wk['b58_privateKey'] );
+        }
+
         unset( $this->wk['publicKey'] );
-        unset( $this->wk['address'] );
-        unset( $this->wk['b58_privateKey'] );
         unset( $this->wk['b58_publicKey'] );
+        unset( $this->wk['address'] );
         unset( $this->wk['b58_address'] );
     }
 
@@ -263,9 +269,9 @@ class WavesKit implements WavesKitInterface
             $temp = $this->getPrivateKey( true );
             if( $temp === false || strlen( $temp ) !== 32 )
                 return false;
-            if( isset( $this->wk['sodium'] ) && $this->wk['sodium'] )
-                $temp = substr( $this->sha512( $temp ), 0, 32 );
-            $temp = sodium_crypto_box_publickey_from_secretkey( $temp );
+            if( $this->getSodium() )
+                $temp = $this->c25519()->getSodiumPrivateKeyFromPrivateKey( $temp );
+            $temp = $this->c25519()->getPublicKeyFromPrivateKey( $temp, $this->getLastBitFlip() );
             $this->wk['publicKey'] = $temp;
         }
 
@@ -321,6 +327,25 @@ class WavesKit implements WavesKitInterface
     public function getSodium()
     {
         return isset( $this->wk['sodium'] );
+    }
+
+    public function setLastBitFlip( $enabled = true )
+    {
+        $this->cleanup( false );
+        if( $enabled )
+            $this->wk['lastbitflip'] = $enabled;
+        else
+            unset( $this->wk['lastbitflip'] );
+    }
+
+    public function getLastBitFlip()
+    {
+        return isset( $this->wk['lastbitflip'] );
+    }
+
+    public function setRSEED( $rseed )
+    {
+        $this->wk['rseed'] = $rseed;
     }
 
     private function json_decode( $json )
@@ -660,14 +685,27 @@ class WavesKit implements WavesKitInterface
         return chr( 2 ) . $network . pack( 'n', strlen( $recipient ) ) . $recipient;
     }
 
+    public function txAlias( $alias, $options = null )
+    {
+        $tx = [];
+        $tx['type'] = 10;
+        $tx['version'] = 2;
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000;
+        $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
+        $tx['alias'] = $alias;
+        return $tx;
+    }
+
     public function txTransfer( $recipient, $amount, $asset = null, $options = null )
     {
         if( isset( $asset ) && ( $asset === 0 || ( strlen( $asset ) === 5 && strtoupper( $asset ) === 'WAVES' ) ) )
             unset( $asset );
 
         $tx = [];
-        $tx['version'] = 2;
         $tx['type'] = 4;
+        $tx['version'] = 2;
         $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
         $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
         $tx['recipient'] = $this->recipientAddressOrAlias( $recipient );
@@ -677,7 +715,6 @@ class WavesKit implements WavesKitInterface
         $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000;
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
         if( isset( $options['attachment'] ) ) $tx['attachment'] = $options['attachment'];
-
         return $tx;
     }
 
@@ -702,11 +739,9 @@ class WavesKit implements WavesKitInterface
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
         if( isset( $asset ) ) $tx['assetId'] = $asset;
         if( isset( $options['attachment'] ) ) $tx['attachment'] = $options['attachment'];
-
         $tx['transfers'] = [];
         for( $i = 0; $i < $n; $i++ )
             $tx['transfers'][] = [ 'recipient' => $this->recipientAddressOrAlias( $recipients[$i] ), 'amount' => $amounts[$i] ];
-
         return $tx;
     }
 
@@ -716,7 +751,7 @@ class WavesKit implements WavesKitInterface
 
         switch( $tx['type'] )
         {
-            case 4:
+            case 4: // transfer
                 $attachment = isset( $tx['attachment'] ) ? $this->base58Decode( $tx['attachment'] ) : null;
 
                 $body .= chr( 4 );
@@ -730,7 +765,18 @@ class WavesKit implements WavesKitInterface
                 $body .= $this->recipientAddressOrAliasBytes( $tx['recipient'] );
                 $body .= isset( $attachment ) ? pack( 'n', strlen( $attachment ) ) . $attachment : chr( 0 ) . chr( 0 );
                 break;
-            case 11:
+            case 10: // alias
+                $body .= chr( 10 );
+                $body .= chr( 2 );
+                $body .= $this->base58Decode( $tx['senderPublicKey'] );
+                $body .= pack( 'n', strlen( $tx['alias'] ) + 4 );
+                $body .= chr( 2 ) . $this->getChainId();
+                $body .= pack( 'n', strlen( $tx['alias'] ) );
+                $body .= $tx['alias'];
+                $body .= pack( 'J', $tx['fee'] );
+                $body .= pack( 'J', $tx['timestamp'] );
+                break;
+            case 11: // mass
                 $attachment = isset( $tx['attachment'] ) ? $this->base58Decode( $tx['attachment'] ) : null;
                 $n = count( $tx['transfers'] );
 
