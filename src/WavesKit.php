@@ -754,7 +754,7 @@ class WavesKit implements WavesKitInterface
         $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
         $tx['data'] = isset( $options['data'] ) ? $options['data'] : $this->userDataToTxData( $userData );
-        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000;
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : $this->getDataFee( $tx );
         return $tx;
     }
 
@@ -835,12 +835,13 @@ class WavesKit implements WavesKitInterface
         return $json['feeAmount'];
     }
 
-    private function getDataBodyFee( $body )
+    private function getDataFee( $tx )
     {
-        $fee = strlen( $body );
-        $fee = intval( ceil( $fee / 1024 ) );
-        $fee = max( $fee * 100000, 100000 );
-        return $fee;
+        if( !isset( $tx['fee'] ) )
+            $tx['fee'] = 0;
+
+        $size = strlen( $this->txBody( $tx ) );
+        return 100000 * ( 1 + intdiv( $size - 1, 1024 ) );
     }
 
     public function txBody( $tx )
