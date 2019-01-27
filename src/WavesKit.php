@@ -49,8 +49,8 @@ interface WavesKitInterface
     //public function txLeaseCancel( $options = null );
     //public function txAlias( $options = null );
     public function txMass( $recipients, $amounts, $asset = null, $options = null );
-    //public function txData( $options = null );
-    //public function txSetScript( $options = null );
+    public function txData( $userData, $options = null );
+    public function txSetScript( $script, $options = null );
     //public function txSponsorship( $options = null );
     //public function txSetAssetScript( $options = null );
     
@@ -745,6 +745,104 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    public function txData( $userData, $options = null )
+    {
+        $tx = [];
+        $tx['type'] = 12;
+        $tx['version'] = 1;
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
+        $tx['data'] = isset( $options['data'] ) ? $options['data'] : $this->userDataToTxData( $userData );
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000;
+        return $tx;
+    }
+
+    public function txSetScript( $script, $options = null )
+    {
+        $tx = [];
+        $tx['type'] = 13;
+        $tx['version'] = 1;
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
+        $tx['script'] = isset( $options['script'] ) ? $options['script'] : isset( $script ) ? 'base64:' . $script : null;
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 1000000;
+        return $tx;
+    }
+
+    private function userDataToTxData( $userData )
+    {
+        $data = [];
+        foreach( $userData as $key => $value )
+            $data[] = [ 'key' => $key, 'type' => gettype( $value ), 'value' => $value ];
+        return $data;
+    }
+
+    public function base64ToBase64Tx( $base64 )
+    {
+        return 'base64:' . $base64;
+    }
+
+    public function base64TxToBase64( $base64 )
+    {
+        return substr( $base64, 7 );
+    }
+
+    public function binToBase64Tx( $bin )
+    {
+        return $this->base64ToBase64Tx( base64_encode( $bin ) );
+    }
+
+    public function Base64TxToBin( $base64 )
+    {
+        return base64_decode( $this->base64TxToBase64( $base64 ) );
+    }
+
+    private function getDataRecordBody( $rec )
+    {
+        $key = $rec['key'];
+        $type = $rec['type'];
+        $value = $rec['value'];
+
+        $body = pack( 'n', strlen( $key ) ) . $key;
+
+        switch( $type )
+        {
+            case 'integer':
+                return $body . chr( 0 ) . pack( 'J', $value );
+            case 'boolean':
+                return $body . chr( 1 ) . chr( ( $value === true || $value === 'true' ) ? 1 : 0 );
+            case 'binary':
+                $value = $this->Base64TxToBin( $value );
+                return $body . chr( 2 ) . pack( 'n', strlen( $value ) ) . $value;
+            case 'string':
+                return $body . chr( 3 ) . pack( 'n', strlen( $value ) ) . $value;
+        }
+    }
+
+    public function calculateFee( $tx )
+    {
+        if( false === ( $json = $this->fetch( '/transactions/calculateFee', true, json_encode( $tx ) ) ) )
+            return false;
+
+        if( false === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        if( !isset( $json['feeAmount'] ) )
+            return false;
+
+        return $json['feeAmount'];
+    }
+
+    private function getDataBodyFee( $body )
+    {
+        $fee = strlen( $body );
+        $fee = intval( ceil( $fee / 1024 ) );
+        $fee = max( $fee * 100000, 100000 );
+        return $fee;
+    }
+
     public function txBody( $tx )
     {
         $body = '';
@@ -765,6 +863,7 @@ class WavesKit implements WavesKitInterface
                 $body .= $this->recipientAddressOrAliasBytes( $tx['recipient'] );
                 $body .= isset( $attachment ) ? pack( 'n', strlen( $attachment ) ) . $attachment : chr( 0 ) . chr( 0 );
                 break;
+
             case 10: // alias
                 $body .= chr( 10 );
                 $body .= chr( 2 );
@@ -776,24 +875,48 @@ class WavesKit implements WavesKitInterface
                 $body .= pack( 'J', $tx['fee'] );
                 $body .= pack( 'J', $tx['timestamp'] );
                 break;
+
             case 11: // mass
                 $attachment = isset( $tx['attachment'] ) ? $this->base58Decode( $tx['attachment'] ) : null;
-                $n = count( $tx['transfers'] );
 
                 $body .= chr( 11 );
                 $body .= chr( 1 );
                 $body .= $this->base58Decode( $tx['senderPublicKey'] );
                 $body .= isset( $tx['assetId'] ) ? chr( 1 ) . $this->base58Decode( $tx['assetId'] ) : chr( 0 );
-                $body .= pack( 'n', $n );
-                for( $i = 0; $i < $n; $i++ )
+                $body .= pack( 'n', count( $tx['transfers'] ) );
+                foreach( $tx['transfers'] as $rec )
                 {
-                    $body .= $this->recipientAddressOrAliasBytes( $tx['transfers'][$i]['recipient'] );
-                    $body .= pack( 'J', $tx['transfers'][$i]['amount'] );
+                    $body .= $this->recipientAddressOrAliasBytes( $rec['recipient'] );
+                    $body .= pack( 'J', $rec['amount'] );
                 }
                 $body .= pack( 'J', $tx['timestamp'] );
                 $body .= pack( 'J', $tx['fee'] );
                 $body .= isset( $attachment ) ? pack( 'n', strlen( $attachment ) ) . $attachment : chr( 0 ) . chr( 0 );
                 break;
+
+            case 12: // data
+                $body .= chr( 12 );
+                $body .= chr( 1 );
+                $body .= $this->base58Decode( $tx['senderPublicKey'] );
+                $body .= pack( 'n', count( $tx['data'] ) );
+                foreach( $tx['data'] as $rec )
+                    $body .= $this->getDataRecordBody( $rec );
+                $body .= pack( 'J', $tx['timestamp'] );
+                $body .= pack( 'J', $tx['fee'] );
+                break;
+
+            case 13: // smart account
+                $script = isset( $tx['script'] ) ? base64_decode( substr( $tx['script'], 7 ) ) : null;
+
+                $body .= chr( 13 );
+                $body .= chr( 1 );
+                $body .= $this->getChainId();
+                $body .= $this->base58Decode( $tx['senderPublicKey'] );
+                $body .= isset( $script ) ? chr( 1 ) . pack( 'n', strlen( $script ) ) . $script : chr( 0 );
+                $body .= pack( 'J', $tx['fee'] );
+                $body .= pack( 'J', $tx['timestamp'] );
+                break;
+
             default:
                 return false;
         }
