@@ -348,7 +348,7 @@ class WavesKit implements WavesKitInterface
         $this->wk['rseed'] = $rseed;
     }
 
-    private function json_decode( $json )
+    public function json_decode( $json )
     {
         return json_decode( $json, true, 512, JSON_BIGINT_AS_STRING );
     }
@@ -413,9 +413,14 @@ class WavesKit implements WavesKitInterface
 
     public function setNodeAddress( $nodeAddress, $cacheLifetime = 1 )
     {
-        $this->wk['nodeAddress'] = $nodeAddress;
-        $this->wk['cacheLifetime'] = $cacheLifetime;
-        $this->resetNodeCache();
+        if( !isset( $this->wk['nodeAddress'] ) || 
+            $this->wk['nodeAddress'] !== $nodeAddress || 
+            $this->wk['cacheLifetime'] !== $cacheLifetime )
+        {
+            $this->wk['nodeAddress'] = $nodeAddress;
+            $this->wk['cacheLifetime'] = $cacheLifetime;
+            $this->resetNodeCache();
+        }
     }
 
     public function getNodeAddress()
@@ -833,6 +838,20 @@ class WavesKit implements WavesKitInterface
             return false;
 
         return $json['feeAmount'];
+    }
+
+    public function getData( $key, $justValue = true )
+    {
+        if( false === ( $json = $this->fetch( '/addresses/data/' . $this->getAddress() . "/$key", false, null, [ 404 ] ) ) )
+            return false;
+
+        if( false === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        if( !isset( $json['value'] ) )
+            return false;
+
+        return $justValue ? $json['value'] : $json;
     }
 
     private function getDataFee( $tx )
