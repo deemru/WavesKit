@@ -21,7 +21,7 @@ $tx = $wk->ensure( $tx );
 
 Will be installed automatically through `composer install`:
 
-- [PHP](http://php.net) >=7.2
+- [PHP](http://php.net) >= 5.6
 - [deemru/abcode](https://packagist.org/packages/deemru/waveskit)
 - [deemru/curve25519](https://packagist.org/packages/deemru/curve25519)
 - [kornrunner/keccak](https://packagist.org/packages/kornrunner/keccak)
@@ -29,6 +29,10 @@ Will be installed automatically through `composer install`:
 - [deemru/cryptash](https://packagist.org/packages/deemru/cryptash)
 - [cURL](http://php.net/manual/en/book.curl.php)
 - [GMP](http://php.net/manual/en/book.gmp.php)
+
+## Recommended
+
+- [PHP](http://php.net) >= 7.2
 - [Sodium](http://php.net/manual/en/book.sodium.php)
 
 ## Installation
