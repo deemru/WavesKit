@@ -3,10 +3,10 @@
 namespace deemru;
 
 use deemru\ABCode;
+use deemru\Blake2b;
 use deemru\Curve25519;
-use kornrunner\Keccak;
-use Composer\CaBundle\CaBundle;
 use deemru\Cryptash;
+use Composer\CaBundle\CaBundle;
 
 interface WavesKitInterface
 {
@@ -123,9 +123,39 @@ class WavesKit implements WavesKitInterface
 
     public function sha256( $data ){ return hash( 'sha256', $data, true ); }
     public function sha512( $data ){ return hash( 'sha512', $data, true ); }
-    public function blake2b256( $data ){ return sodium_crypto_generichash( $data ); }
-    public function keccak256( $data ){ return $this->k256()->hash( $data, 256, true ); }
     public function secureHash( $data ){ return $this->keccak256( $this->blake2b256( $data ) ); }
+
+    public function keccak256( $data )
+    { 
+        static $keccak;
+
+        if( !isset( $keccak ) )
+        {
+            require_once __DIR__ . '/../support/Keccak.php';
+            $keccak = new \kornrunner\Keccak();
+        }
+
+        return $keccak->hash( $data, 256, true );
+    }
+
+    public function blake2b256( $data )
+    {
+        static $sodiumBlake;
+        static $blake2b;
+
+        if( !isset( $sodiumBlake ) )
+        {
+            if( function_exists( 'sodium_crypto_generichash' ) )
+                $sodiumBlake = true;
+            else
+                $blake2b = new Blake2b();
+        }
+
+        if( $sodiumBlake )
+            return sodium_crypto_generichash( $data );
+        else
+            return $blake2b->hash( $data );
+    }
 
     public function sign( $data, $key = null )
     {
@@ -146,15 +176,6 @@ class WavesKit implements WavesKitInterface
     private function sign_rseed( $data, $rseed, $key = null ){ return $this->c25519()->sign( $data, isset( $key ) ? $key : $this->getPrivateKey( true ), $rseed ); }
     public function verify( $sig, $data, $key = null ){ return $this->c25519()->verify( $sig, $data, isset( $key ) ? $key : $this->getPublicKey( true ) ); }
 
-    private function k256()
-    {
-        static $k256;
-
-        if( !isset( $k256 ) )
-            $k256 = new Keccak();
-
-        return $k256;
-    }
 
     private function c25519()
     {
@@ -184,9 +205,12 @@ class WavesKit implements WavesKitInterface
         }
 
         $seed = '';
-        $max = count( $english ) - 1;
+        $mod = count( $english );
         for( $i = 0; $i < $words; $i++ )
-            $seed .= ( $i ? ' ' : '' ) . $english[random_int( 0, $max )];
+        {
+            $ri = ( ( ord( Cryptash::rnd( 1 ) ) << 8 ) | ord( Cryptash::rnd( 1 ) ) ) % $mod;
+            $seed .= ( $i ? ' ' : '' ) . $english[$ri];
+        }
 
         return $seed;
     }
@@ -240,8 +264,7 @@ class WavesKit implements WavesKitInterface
         {
             if( !isset( $seed ) )
                 return false;
-            $temp = $seed;
-            $temp = chr( 0 ) . chr( 0 ) . chr( 0 ) . chr( 0 ) . $temp;
+            $temp = chr( 0 ) . chr( 0 ) . chr( 0 ) . chr( 0 ) . $seed;
             $temp = $this->secureHash( $temp );
             $temp = $this->sha256( $temp );
             $this->wk['privateKey'] = $temp;

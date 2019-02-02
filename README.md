@@ -21,14 +21,19 @@ $tx = $wk->ensure( $tx );
 
 Will be installed automatically through `composer install`:
 
-- [PHP](http://php.net) >=7.2
+- [PHP](http://php.net) >= 5.6
 - [deemru/abcode](https://packagist.org/packages/deemru/waveskit)
+- [deemru/blake2b](https://packagist.org/packages/deemru/blake2b)
 - [deemru/curve25519](https://packagist.org/packages/deemru/curve25519)
-- [kornrunner/keccak](https://packagist.org/packages/kornrunner/keccak)
-- [composer/ca-bundle](https://packagist.org/packages/composer/ca-bundle)
 - [deemru/cryptash](https://packagist.org/packages/deemru/cryptash)
+- [composer/ca-bundle](https://packagist.org/packages/composer/ca-bundle)
 - [cURL](http://php.net/manual/en/book.curl.php)
 - [GMP](http://php.net/manual/en/book.gmp.php)
+- [Multibyte String](http://php.net/manual/en/book.mbstring.php)
+
+## Recommended
+
+- [PHP](http://php.net) >= 7.2
 - [Sodium](http://php.net/manual/en/book.sodium.php)
 
 ## Installation
