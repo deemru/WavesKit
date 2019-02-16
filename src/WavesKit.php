@@ -6,6 +6,7 @@ use deemru\ABCode;
 use deemru\Blake2b;
 use deemru\Curve25519;
 use deemru\Cryptash;
+use deemru\Pairs;
 use Composer\CaBundle\CaBundle;
 
 interface WavesKitInterface
@@ -43,23 +44,26 @@ interface WavesKitInterface
     //public function txIssue( $options = null );
     public function txTransfer( $recipient, $amount, $asset = null, $options = null );
     //public function txReissue( $options = null );
-    //public function txBurn( $options = null );
-    //public function txOrder( $options = null );
+    public function txBurn( $amount, $asset, $options = null );
     //public function txLease( $options = null );
     //public function txLeaseCancel( $options = null );
-    //public function txAlias( $options = null );
+    public function txAlias( $alias, $options = null );
     public function txMass( $recipients, $amounts, $asset = null, $options = null );
     public function txData( $userData, $options = null );
     public function txSetScript( $script, $options = null );
     //public function txSponsorship( $options = null );
     //public function txSetAssetScript( $options = null );
-    
+
     public function txBody( $tx );
     public function txSign( $tx, $proofIndex = null );
     public function txBroadcast( $tx );
 
+    public function txOrder( $amountAsset, $priceAsset, $isSell, $price, $amount, $expiration, $options = null );
+    public function txOrderBroadcast( $tx );
+    public function txOrderCancel( $tx );
+
     public function setNodeAddress( $nodeAddress, $cacheLifetime = 1 );
-    public function getNodeAddress();    
+    public function getNodeAddress();
 
     public function fetch( $url, $post = false, $data = null, $log = true );
     public function timestamp( $fromNode = false );
@@ -126,7 +130,7 @@ class WavesKit implements WavesKitInterface
     public function secureHash( $data ){ return $this->keccak256( $this->blake2b256( $data ) ); }
 
     public function keccak256( $data )
-    { 
+    {
         static $keccak;
 
         if( !isset( $keccak ) )
@@ -436,8 +440,8 @@ class WavesKit implements WavesKitInterface
 
     public function setNodeAddress( $nodeAddress, $cacheLifetime = 1 )
     {
-        if( !isset( $this->wk['nodeAddress'] ) || 
-            $this->wk['nodeAddress'] !== $nodeAddress || 
+        if( !isset( $this->wk['nodeAddress'] ) ||
+            $this->wk['nodeAddress'] !== $nodeAddress ||
             $this->wk['cacheLifetime'] !== $cacheLifetime )
         {
             $this->wk['nodeAddress'] = $nodeAddress;
@@ -451,7 +455,7 @@ class WavesKit implements WavesKitInterface
         return isset( $this->wk['nodeAddress'] ) ? $this->wk['nodeAddress'] : false;
     }
 
-    public function fetch( $url, $post = false, $data = null, $ignoreCodes = null )
+    public function fetch( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
     {
         if( false === ( $curl = $this->curl() ) )
             return false;
@@ -460,15 +464,16 @@ class WavesKit implements WavesKitInterface
             return $data;
 
         $host = $this->wk['nodeAddress'];
-        $options = [
-            CURLOPT_URL             => $host . $url,
-            CURLOPT_POST            => $post,
-        ];
+        $options = [ CURLOPT_URL => $host . $url, CURLOPT_POST => $post ];
+
+        if( isset( $headers ) )
+            $options[CURLOPT_HTTPHEADER] = $headers;
 
         if( isset( $data ) )
         {
-            $options[CURLOPT_HTTPHEADER] = [ 'Content-Type: application/json', 'Accept: application/json' ];
             $options[CURLOPT_POSTFIELDS] = $data;
+            if( !isset( $options[CURLOPT_HTTPHEADER] ) )
+                $options[CURLOPT_HTTPHEADER] = [ 'Content-Type: application/json', 'Accept: application/json' ];
         }
 
         if( false === curl_setopt_array( $curl, $options ) )
@@ -482,8 +487,11 @@ class WavesKit implements WavesKitInterface
             if( !isset( $ignoreCodes ) || $errno !== 0 || !in_array( $code, $ignoreCodes ) )
             {
                 $curl_error = curl_error( $curl );
-                if( is_string( $data ) && false !== ( $json = $this->json_decode( $data ) ) && isset( $json['error'] ) )
-                    $this->log( 'e', "$host ({$json['error']})" . ( isset( $json['message'] ) ? " ({$json['message']})" : '' ) );
+                if( is_string( $data ) && false !== ( $json = $this->json_decode( $data ) ) && isset( $json['message'] ) )
+                {
+                    $status = isset( $json['error'] ) ? $json['error'] : ( isset( $json['status'] ) ? $json['status'] : '...' );
+                    $this->log( 'e', "$host ($status)" . ( isset( $json['message'] ) ? " ({$json['message']})" : '' ) );
+                }
                 else
                     $this->log( 'e', "$host (HTTP $code) (cURL $errno" . ( empty( $curl_error ) ? ')' : ":$curl_error)" ) );
             }
@@ -567,6 +575,18 @@ class WavesKit implements WavesKitInterface
         return $json['height'];
     }
 
+    public function getBlockAt( $height, $headers = false )
+    {
+        $headers = $headers ? '/headers' : '';
+        if( false === ( $json = $this->fetch( "/blocks$headers/at/$height" ) ) )
+            return false;
+
+        if( false === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        return $json;
+    }
+
     public function txBroadcast( $tx )
     {
         if( false === ( $json = $this->fetch( '/transactions/broadcast', true, json_encode( $tx ) ) ) )
@@ -581,6 +601,41 @@ class WavesKit implements WavesKitInterface
         return $json;
     }
 
+    public function txOrderBroadcast( $tx )
+    {
+        if( false === ( $json = $this->fetch( '/matcher/orderbook', true, json_encode( $tx ) ) ) )
+            return false;
+
+        if( false === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        if( !isset( $json['message']['id'] ) )
+            return false;
+
+        return $json['message'];
+    }
+
+    public function txOrderCancel( $tx )
+    {
+        $cancel = [ 'sender' => $tx['senderPublicKey'], 'orderId' => $tx['id'] ];
+        $cancelBody = $this->base58Decode( $tx['senderPublicKey'] ) . $this->base58Decode( $tx['id'] );
+        $cancel['signature'] = $this->base58Encode( $this->sign( $cancelBody ) );
+
+        $amountAsset = isset( $tx['assetPair']['amountAsset'] ) ? $tx['assetPair']['amountAsset'] : 'WAVES';
+        $priceAsset = isset( $tx['assetPair']['priceAsset'] ) ? $tx['assetPair']['priceAsset'] : 'WAVES';
+
+        if( false === ( $json = $this->fetch( "/matcher/orderbook/$amountAsset/$priceAsset/cancel", true, json_encode( $cancel ) ) ) )
+            return false;
+
+        if( false === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        if( !isset( $json['orderId'] ) )
+            return false;
+
+        return $tx;
+    }
+
     public function getTransactionById( $id, $unconfirmed = false )
     {
         $unconfirmed = $unconfirmed ? '/unconfirmed' : '';
@@ -591,6 +646,22 @@ class WavesKit implements WavesKitInterface
             return false;
 
         return $json;
+    }
+
+    public function getTransactions( $address = null, $limit = 1000, $after = null )
+    {
+        $address = isset( $address ) ? $address : $this->getAddress();
+        $after = isset( $after ) ? "?after=$after" : '';
+        if( false === ( $json = $this->fetch( "/transactions/address/$address/limit/$limit$after" ) ) )
+            return false;
+
+        if( false === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        if( !isset( $json[0][0] ) )
+            return false;
+
+        return $json[0];
     }
 
     public function ensure( $tx, $confirmations = 0, $sleep = 1, $timeout = 30 )
@@ -615,7 +686,7 @@ class WavesKit implements WavesKitInterface
                         $this->log( 'e', "($id) not found (timeout reached)" );
                         return false;
                     }
-    
+
                     $this->log( 'w', "($id) found in unconfirmed again ($n)" );
                     $n_utx = 0;
                     continue;
@@ -726,6 +797,20 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    public function txBurn( $quantity, $asset, $options = null )
+    {
+        $tx = [];
+        $tx['type'] = 6;
+        $tx['version'] = 2;
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000;
+        $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
+        $tx['quantity'] = $quantity;
+        $tx['assetId'] = $asset;
+        return $tx;
+    }
+
     public function txTransfer( $recipient, $amount, $asset = null, $options = null )
     {
         if( isset( $asset ) && ( $asset === 0 || ( strlen( $asset ) === 5 && strtoupper( $asset ) === 'WAVES' ) ) )
@@ -743,6 +828,25 @@ class WavesKit implements WavesKitInterface
         $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000;
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
         if( isset( $options['attachment'] ) ) $tx['attachment'] = $options['attachment'];
+        return $tx;
+    }
+
+    public function txOrder( $amountAsset, $priceAsset, $isSell, $amount, $price, $expiration = 30 * 24 * 60 * 60 * 1000, $options = null )
+    {
+        $tx = [];
+        $tx['version'] = 2;
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['matcherPublicKey'] = isset( $options['matcherPublicKey'] ) ? $options['matcherPublicKey'] : '7kPFrHDiGw1rCm7LPszuECwWYL3dMf6iMifLRDJQZMzy';
+        $tx['assetPair'] = [
+            'amountAsset' => $amountAsset,
+            'priceAsset' => $priceAsset ];
+        $tx['orderType'] = $isSell ? 'sell' : 'buy';
+        $tx['amount'] = $amount;
+        $tx['price'] = $price;
+        $tx['matcherFee'] = isset( $options['matcherFee'] ) ? $options['matcherFee'] : 300000;
+        $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
+        $tx['expiration'] = $tx['timestamp'] + $expiration;
         return $tx;
     }
 
@@ -890,6 +994,22 @@ class WavesKit implements WavesKitInterface
     {
         $body = '';
 
+        if( isset( $tx['orderType'] ) )
+        {
+            $body .= chr( 2 );
+            $body .= $this->base58Decode( $tx['senderPublicKey'] );
+            $body .= $this->base58Decode( $tx['matcherPublicKey'] );
+            $body .= isset( $tx['assetPair']['amountAsset'] ) ? chr( 1 ) . $this->base58Decode( $tx['assetPair']['amountAsset'] ) : chr( 0 );
+            $body .= isset( $tx['assetPair']['priceAsset'] ) ? chr( 1 ) . $this->base58Decode( $tx['assetPair']['priceAsset'] ) : chr( 0 );
+            $body .= $tx['orderType'] === 'buy' ? chr( 0 ) : chr( 1 );
+            $body .= pack( 'J', $tx['price'] );
+            $body .= pack( 'J', $tx['amount'] );
+            $body .= pack( 'J', $tx['timestamp'] );
+            $body .= pack( 'J', $tx['expiration'] );
+            $body .= pack( 'J', $tx['matcherFee'] );
+            return $body;
+        }
+
         switch( $tx['type'] )
         {
             case 4: // transfer
@@ -905,6 +1025,17 @@ class WavesKit implements WavesKitInterface
                 $body .= pack( 'J', $tx['fee'] );
                 $body .= $this->recipientAddressOrAliasBytes( $tx['recipient'] );
                 $body .= isset( $attachment ) ? pack( 'n', strlen( $attachment ) ) . $attachment : chr( 0 ) . chr( 0 );
+                break;
+
+            case 6: // burn
+                $body .= chr( 6 );
+                $body .= chr( 2 );
+                $body .= $this->getChainId();
+                $body .= $this->base58Decode( $tx['senderPublicKey'] );
+                $body .= $this->base58Decode( $tx['assetId'] );
+                $body .= pack( 'J', $tx['quantity'] );
+                $body .= pack( 'J', $tx['fee'] );
+                $body .= pack( 'J', $tx['timestamp'] );
                 break;
 
             case 10: // alias
@@ -970,7 +1101,7 @@ class WavesKit implements WavesKitInterface
     public function txSign( $tx, $proofIndex = null )
     {
         if( false === ( $body = $this->txBody( $tx ) ) )
-            return false;        
+            return false;
 
         $sig = $this->sign( $body );
         $id = $this->blake2b256( $body );
@@ -1015,5 +1146,168 @@ class WavesKit implements WavesKitInterface
             return false;
 
         return $this->wk['cryptash']->decryptash( $data );
+    }
+
+    private function getPairsDatabase()
+    {
+        if( isset( $this->wk['pairs'] ) )
+            return $this->wk['pairs'];
+        return false;
+    }
+
+    public function setPairsDatabase( $path )
+    {
+        $this->wk['pairs']['transactions'] = new Pairs( $path, 'transactions', true, 'TEXT UNIQUE|INTEGER|0|0' );
+        $this->wk['pairs']['signatures'] = new Pairs( $this->wk['pairs']['transactions']->db(), 'signatures', true, 'INTEGER PRIMARY KEY|TEXT|0|0' );
+    }
+
+    private function watchTransactions( $transactionPairs, $signaturePairs, &$newTransactions, &$newSignatures, $confirmations, $depth )
+    {
+        $id = null;
+        $lastNewTransaction = null;
+        $lastHeight = 0;
+        $limit = 10;
+        $passedBlocks = 0;
+
+        for( ;; )
+        {
+            if( false === ( $transactions = $this->getTransactions( null, $limit, $id ) ) )
+                return isset( $id ) ? $lastNewTransaction : false;
+
+            foreach( $transactions as $transaction )
+            {
+                $id = $transaction['id'];
+                $height = $transaction['height'];
+                if( !isset( $lastNewTransaction ) )
+                    $lastNewTransaction = $transaction;
+
+                if( $lastHeight !== $height )
+                {
+                    $passedBlocks++;
+                    $lastHeight = $height;
+
+                    if( $depth > $height )
+                        return $lastNewTransaction;
+
+                    if( false === ( $header = $this->getBlockAt( $height, true ) ) )
+                    {
+                        $this->log( 'e', 'getBlockAt failed' );
+                        return false;
+                    }
+
+                    $signature = $header['signature'];
+                    $savedSignature = $signaturePairs->getValue( $height );
+                    if( $savedSignature !== $signature )
+                    {
+                        $newSignatures[$height] = $signature;
+                        $stableConfirmations = null;
+                    }
+                    elseif( !isset( $stableConfirmations ) )
+                        $stableConfirmations = 0;
+                    elseif( ++$stableConfirmations >= $confirmations )
+                        return $lastNewTransaction;
+                }
+
+                $savedHeight = $transactionPairs->getValue( $id, 'i' );
+
+                if( $savedHeight === false )
+                    $transaction['status'] = 'new';
+                elseif( $savedHeight !== $height )
+                    $transaction['status'] = 'replaced';
+                else
+                    continue;
+
+                $newTransactions[] = $transaction;
+                if( isset( $stableConfirmations ) )
+                    $stableConfirmations = null;
+            }
+
+            if( $passedBlocks > 10 )
+                $limit = 1000;
+        }
+    }
+
+    public function getNewTransaction( $lastTransaction )
+    {
+        if( false === ( $transaction = $this->getTransactions( null, 1 ) ) )
+            return false;
+
+        $transaction = $transaction[0];
+        if( $lastTransaction['id'] !== $transaction['id'] || $lastTransaction['height'] !== $transaction['height'] )
+            return $transaction;
+
+        return false;
+    }
+
+    public function txMonitor( $callback, $confirmations = 2, $depth = 0, $sleep = 1 )
+    {
+        if( false === ( $pairs = $this->getPairsDatabase() ) )
+        {
+            $this->log( 'e', 'setPairsDatabase() first' );
+            return false;
+        }
+
+        for( ;; )
+        {
+            $newTransactions = [];
+            $newSignatures = [];
+            if( false === ( $lastTx = $this->watchTransactions( $pairs['transactions'], $pairs['signatures'],
+                                                                $newTransactions, $newSignatures,
+                                                                $confirmations, $depth ) ) )
+            {
+                $this->log( 'e', 'watchTransactions() failed' );
+                return false;
+            }
+
+            $refreshed = count( $newTransactions ) || count( $newSignatures );
+
+            if( false === ( $result = $callback( $this, $refreshed, $newTransactions ) ) )
+                return false;
+
+            if( $refreshed )
+            {
+                $this->log( 'i', 'save new transactions (' . count( $newTransactions ) . ')' );
+                $pairs['transactions']->begin();
+                foreach( $newTransactions as $tx )
+                    $pairs['transactions']->setKeyValue( $tx['id'], $tx['height'] );
+                foreach( $newSignatures as $height => $signature )
+                    $pairs['signatures']->setKeyValue( $height, $signature );
+                $pairs['transactions']->commit();
+            }
+
+            if( $result > 0 )
+            {
+                $height = $this->height();
+
+                if( $height - $lastTx['height'] > $confirmations )
+                {
+                    $n = 0;
+                    while( false === ( $newTx = $this->getNewTransaction( $lastTx ) ) )
+                    {
+                        $n += $sleep;
+                        if( $n >= $result )
+                        {
+                            $this->log( 'i', "no new transaction" );
+                            break;
+                        }
+                        sleep( $sleep );
+                    }
+
+                    if( $newTx !== false )
+                        $this->log( 'i', "new transaction found" );
+
+                    continue;
+                }
+                else
+                {
+                    sleep( $sleep );
+                    continue;
+                }
+            }
+
+            break;
+        }
+
+        return true;
     }
 }

@@ -4,9 +4,10 @@
 
 [WavesKit](https://github.com/deemru/WavesKit) is an all-in-one Waves Platform development kit for the PHP language.
 
-- Implements all the functions you need in the single class
-- Easy to use
-- Advanced features
+- All you need to work with Waves in a single class
+- Really easy to use
+- Best practices for all
+- Advanced features for pros
 
 ## Usage
 
@@ -26,10 +27,12 @@ Will be installed automatically through `composer install`:
 - [deemru/blake2b](https://packagist.org/packages/deemru/blake2b)
 - [deemru/curve25519](https://packagist.org/packages/deemru/curve25519)
 - [deemru/cryptash](https://packagist.org/packages/deemru/cryptash)
+- [deemru/pairs](https://packagist.org/packages/deemru/pairs)
 - [composer/ca-bundle](https://packagist.org/packages/composer/ca-bundle)
 - [cURL](http://php.net/manual/en/book.curl.php)
 - [GMP](http://php.net/manual/en/book.gmp.php)
 - [Multibyte String](http://php.net/manual/en/book.mbstring.php)
+- [SQLite (PDO)](http://php.net/manual/en/ref.pdo-sqlite.php)
 
 ## Recommended
 

@@ -17,6 +17,7 @@
         "deemru/blake2b": "1.0.*",
         "deemru/curve25519": "1.0.*",
         "deemru/cryptash": "1.0.*",
+        "deemru/pairs": "1.0.*",
         "composer/ca-bundle": "*",
         "ext-curl": "*",
         "ext-gmp": "*",
