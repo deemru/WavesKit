@@ -636,6 +636,20 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    public function getAddressByAlias( $alias )
+    {
+        if( false === ( $json = $this->fetch( "/alias/by-alias/$alias", false, null, [ 404 ] ) ) )
+            return false;
+
+        if( false === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        if( !isset( $json['address'] ) )
+            return false;
+
+        return $json['address'];
+    }
+
     public function getTransactionById( $id, $unconfirmed = false )
     {
         $unconfirmed = $unconfirmed ? '/unconfirmed' : '';
@@ -666,6 +680,9 @@ class WavesKit implements WavesKitInterface
 
     public function ensure( $tx, $confirmations = 0, $sleep = 1, $timeout = 30 )
     {
+        if( $tx === false )
+            return false;
+
         $id = $tx['id'];
         $n = 1;
         $n_utx = 0;
@@ -1157,8 +1174,8 @@ class WavesKit implements WavesKitInterface
 
     public function setPairsDatabase( $path )
     {
-        $this->wk['pairs']['transactions'] = new Pairs( $path, 'transactions', true, 'TEXT UNIQUE|INTEGER|0|0' );
-        $this->wk['pairs']['signatures'] = new Pairs( $this->wk['pairs']['transactions']->db(), 'signatures', true, 'INTEGER PRIMARY KEY|TEXT|0|0' );
+        $this->wk['pairs']['transactions'] = new Pairs( $path, 'savedTransactions', true, 'TEXT UNIQUE|INTEGER|0|0' );
+        $this->wk['pairs']['signatures'] = new Pairs( $this->wk['pairs']['transactions']->db(), 'savedSignatures', true, 'INTEGER PRIMARY KEY|TEXT|0|0' );
     }
 
     private function watchTransactions( $transactionPairs, $signaturePairs, &$newTransactions, &$newSignatures, $confirmations, $depth )
@@ -1172,7 +1189,7 @@ class WavesKit implements WavesKitInterface
         for( ;; )
         {
             if( false === ( $transactions = $this->getTransactions( null, $limit, $id ) ) )
-                return isset( $id ) ? $lastNewTransaction : false;
+                return isset( $id ) ? $lastNewTransaction : [ 'id' => '', 'height' => 0 ];
 
             foreach( $transactions as $transaction )
             {
