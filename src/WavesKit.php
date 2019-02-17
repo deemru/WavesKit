@@ -728,7 +728,8 @@ class WavesKit implements WavesKitInterface
             $n++;
         }
 
-        $this->log( 's', "($id) confirmed ($n)" );
+        if( $sleep )
+            $this->log( 's', "($id) confirmed ($n)" );
 
         if( $confirmations > 0 )
         {
@@ -1304,7 +1305,7 @@ class WavesKit implements WavesKitInterface
                         $n += $sleep;
                         if( $n >= $result )
                         {
-                            $this->log( 'i', "no new transaction" );
+                            $this->log( 'i', "no new transactions" );
                             break;
                         }
                         sleep( $sleep );
