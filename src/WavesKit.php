@@ -41,9 +41,9 @@ interface WavesKitInterface
     public function verify( $sig, $data );
 
     //public function txPayment( $options = null );
-    //public function txIssue( $options = null );
+    public function txIssue( $name, $description, $quantity, $decimals, $reissuable, $script = null, $options = null );
     public function txTransfer( $recipient, $amount, $asset = null, $options = null );
-    //public function txReissue( $options = null );
+    public function txReissue( $asset, $quantity, $reissuable, $options = null );
     public function txBurn( $amount, $asset, $options = null );
     //public function txLease( $options = null );
     //public function txLeaseCancel( $options = null );
@@ -815,6 +815,39 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    public function txIssue( $name, $description, $quantity, $decimals, $reissuable, $script = null, $options = null )
+    {
+        $tx = [];
+        $tx['type'] = 3;
+        $tx['version'] = 2;
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000000;
+        $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
+        $tx['name'] = $name;
+        $tx['description'] = $description;
+        $tx['quantity'] = $quantity;
+        $tx['decimals'] = $decimals;
+        $tx['reissuable'] = $reissuable;
+        if( isset( $script ) ) $tx['script'] = $script;
+        return $tx;
+    }
+
+    public function txReissue( $asset, $quantity, $reissuable, $options = null )
+    {
+        $tx = [];
+        $tx['type'] = 5;
+        $tx['version'] = 2;
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000000;
+        $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
+        $tx['assetId'] = $asset;
+        $tx['quantity'] = $quantity;
+        $tx['reissuable'] = $reissuable;
+        return $tx;
+    }
+
     public function txBurn( $quantity, $asset, $options = null )
     {
         $tx = [];
@@ -1030,6 +1063,23 @@ class WavesKit implements WavesKitInterface
 
         switch( $tx['type'] )
         {
+            case 3: // issue
+                $script = isset( $tx['script'] ) ? $this->base58Decode( $tx['script'] ) : null;
+
+                $body .= chr( 3 );
+                $body .= chr( 2 );
+                $body .= $this->getChainId();
+                $body .= $this->base58Decode( $tx['senderPublicKey'] );
+                $body .= pack( 'n', strlen( $tx['name'] ) ) . $tx['name'];
+                $body .= pack( 'n', strlen( $tx['description'] ) ) . $tx['description'];
+                $body .= pack( 'J', $tx['quantity'] );
+                $body .= chr( $tx['decimals'] );
+                $body .= chr( $tx['reissuable'] ? 1 : 0 );
+                $body .= pack( 'J', $tx['fee'] );
+                $body .= pack( 'J', $tx['timestamp'] );
+                $body .= isset( $script ) ? chr( 1 ) . pack( 'n', strlen( $script ) ) . $script : chr( 0 );
+                break;
+
             case 4: // transfer
                 $attachment = isset( $tx['attachment'] ) ? $this->base58Decode( $tx['attachment'] ) : null;
 
@@ -1043,6 +1093,18 @@ class WavesKit implements WavesKitInterface
                 $body .= pack( 'J', $tx['fee'] );
                 $body .= $this->recipientAddressOrAliasBytes( $tx['recipient'] );
                 $body .= isset( $attachment ) ? pack( 'n', strlen( $attachment ) ) . $attachment : chr( 0 ) . chr( 0 );
+                break;
+
+            case 5: // reissue
+                $body .= chr( 5 );
+                $body .= chr( 2 );
+                $body .= $this->getChainId();
+                $body .= $this->base58Decode( $tx['senderPublicKey'] );
+                $body .= $this->base58Decode( $tx['assetId'] );
+                $body .= pack( 'J', $tx['quantity'] );
+                $body .= chr( $tx['reissuable'] ? 1 : 0 );
+                $body .= pack( 'J', $tx['fee'] );
+                $body .= pack( 'J', $tx['timestamp'] );
                 break;
 
             case 6: // burn
