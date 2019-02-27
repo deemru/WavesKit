@@ -40,19 +40,18 @@ interface WavesKitInterface
     public function sign( $data );
     public function verify( $sig, $data );
 
-    //public function txPayment( $options = null );
     public function txIssue( $name, $description, $quantity, $decimals, $reissuable, $script = null, $options = null );
     public function txTransfer( $recipient, $amount, $asset = null, $options = null );
     public function txReissue( $asset, $quantity, $reissuable, $options = null );
     public function txBurn( $amount, $asset, $options = null );
-    //public function txLease( $options = null );
-    //public function txLeaseCancel( $options = null );
+    public function txLease( $recipient, $amount, $options = null );
+    public function txLeaseCancel( $leaseId, $options = null );
     public function txAlias( $alias, $options = null );
     public function txMass( $recipients, $amounts, $asset = null, $options = null );
     public function txData( $userData, $options = null );
     public function txSetScript( $script, $options = null );
-    //public function txSponsorship( $options = null );
-    //public function txSetAssetScript( $options = null );
+    public function txSponsorship( $assetId, $minSponsoredAssetFee, $options = null );
+    public function txSetAssetScript( $assetId, $script, $options = null );
 
     public function txBody( $tx );
     public function txSign( $tx, $proofIndex = null );
@@ -589,6 +588,9 @@ class WavesKit implements WavesKitInterface
 
     public function txBroadcast( $tx )
     {
+        if( !isset( $tx['proofs'] ) )
+            $tx['proofs'] = [];
+
         if( false === ( $json = $this->fetch( '/transactions/broadcast', true, json_encode( $tx ) ) ) )
             return false;
 
@@ -829,7 +831,8 @@ class WavesKit implements WavesKitInterface
         $tx['quantity'] = $quantity;
         $tx['decimals'] = $decimals;
         $tx['reissuable'] = $reissuable;
-        if( isset( $script ) ) $tx['script'] = $script;
+        if( isset( $script ) || isset( $options['script'] ) )
+            $tx['script'] = isset( $options['script'] ) ? $options['script'] : isset( $script ) ? 'base64:' . $script : null;
         return $tx;
     }
 
@@ -879,6 +882,34 @@ class WavesKit implements WavesKitInterface
         $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000;
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
         if( isset( $options['attachment'] ) ) $tx['attachment'] = $options['attachment'];
+        return $tx;
+    }
+
+    public function txLease( $recipient, $amount, $options = null )
+    {
+        $tx = [];
+        $tx['type'] = 8;
+        $tx['version'] = 2;
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['recipient'] = $this->recipientAddressOrAlias( $recipient );
+        $tx['amount'] = $amount;
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000;
+        $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
+        return $tx;
+    }
+
+    public function txLeaseCancel( $leaseId, $options = null )
+    {
+        $tx = [];
+        $tx['type'] = 9;
+        $tx['version'] = 2;
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['leaseId'] = $leaseId;
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000;
+        $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
+        $tx['chainId'] = ord( $this->getChainId() );
         return $tx;
     }
 
@@ -951,6 +982,35 @@ class WavesKit implements WavesKitInterface
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
         $tx['script'] = isset( $options['script'] ) ? $options['script'] : isset( $script ) ? 'base64:' . $script : null;
         $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 1000000;
+        return $tx;
+    }
+
+    public function txSponsorship( $assetId, $minSponsoredAssetFee, $options = null )
+    {
+        $tx = [];
+        $tx['type'] = 14;
+        $tx['version'] = 1;
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['assetId'] = $assetId;
+        $tx['minSponsoredAssetFee'] = $minSponsoredAssetFee;
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000000;
+        $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
+        return $tx;
+    }
+
+    public function txSetAssetScript( $assetId, $script, $options = null )
+    {
+        $tx = [];
+        $tx['type'] = 15;
+        $tx['version'] = 1;
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['assetId'] = $assetId;
+        $tx['script'] = isset( $options['script'] ) ? $options['script'] : isset( $script ) ? 'base64:' . $script : null;
+        $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000000;
+        $tx['chainId'] = ord( $this->getChainId() );
         return $tx;
     }
 
@@ -1064,7 +1124,7 @@ class WavesKit implements WavesKitInterface
         switch( $tx['type'] )
         {
             case 3: // issue
-                $script = isset( $tx['script'] ) ? $this->base58Decode( $tx['script'] ) : null;
+                $script = isset( $tx['script'] ) ? base64_decode( substr( $tx['script'], 7 ) ) : null;
 
                 $body .= chr( 3 );
                 $body .= chr( 2 );
@@ -1118,6 +1178,28 @@ class WavesKit implements WavesKitInterface
                 $body .= pack( 'J', $tx['timestamp'] );
                 break;
 
+            case 8: // lease
+                $body .= chr( 8 );
+                $body .= chr( 2 );
+                $body .= chr( 0 );
+                //$body .= $this->getChainId();
+                $body .= $this->base58Decode( $tx['senderPublicKey'] );
+                $body .= $this->recipientAddressOrAliasBytes( $tx['recipient'] );
+                $body .= pack( 'J', $tx['amount'] );
+                $body .= pack( 'J', $tx['fee'] );
+                $body .= pack( 'J', $tx['timestamp'] );
+                break;
+
+            case 9: // lease cancel
+                $body .= chr( 9 );
+                $body .= chr( 2 );
+                $body .= $this->getChainId();
+                $body .= $this->base58Decode( $tx['senderPublicKey'] );
+                $body .= pack( 'J', $tx['fee'] );
+                $body .= pack( 'J', $tx['timestamp'] );
+                $body .= $this->base58Decode( $tx['leaseId'] );
+                break;
+
             case 10: // alias
                 $body .= chr( 10 );
                 $body .= chr( 2 );
@@ -1169,6 +1251,29 @@ class WavesKit implements WavesKitInterface
                 $body .= isset( $script ) ? chr( 1 ) . pack( 'n', strlen( $script ) ) . $script : chr( 0 );
                 $body .= pack( 'J', $tx['fee'] );
                 $body .= pack( 'J', $tx['timestamp'] );
+                break;
+
+            case 14: // sponsorship
+                $body .= chr( 14 );
+                $body .= chr( 1 );
+                $body .= $this->base58Decode( $tx['senderPublicKey'] );
+                $body .= $this->base58Decode( $tx['assetId'] );
+                $body .= pack( 'J', $tx['minSponsoredAssetFee'] );
+                $body .= pack( 'J', $tx['fee'] );
+                $body .= pack( 'J', $tx['timestamp'] );
+                break;
+
+            case 15: // smart asset
+                $script = isset( $tx['script'] ) ? base64_decode( substr( $tx['script'], 7 ) ) : null;
+
+                $body .= chr( 15 );
+                $body .= chr( 1 );
+                $body .= $this->getChainId();
+                $body .= $this->base58Decode( $tx['senderPublicKey'] );
+                $body .= $this->base58Decode( $tx['assetId'] );
+                $body .= pack( 'J', $tx['fee'] );
+                $body .= pack( 'J', $tx['timestamp'] );
+                $body .= isset( $script ) ? chr( 1 ) . pack( 'n', strlen( $script ) ) . $script : chr( 0 );
                 break;
 
             default:
@@ -1303,7 +1408,7 @@ class WavesKit implements WavesKitInterface
             }
 
             if( $passedBlocks > 10 )
-                $limit = 1000;
+                $limit = 100;
         }
     }
 
@@ -1340,6 +1445,7 @@ class WavesKit implements WavesKitInterface
             }
 
             $refreshed = count( $newTransactions ) || count( $newSignatures );
+            $newTransactions = array_reverse( $newTransactions );
 
             if( false === ( $result = $callback( $this, $refreshed, $newTransactions ) ) )
                 return false;
