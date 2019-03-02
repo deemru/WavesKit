@@ -50,10 +50,12 @@ class tester
 
     public function test( $cond )
     {
+        global $wk;
         $this->depth--;
         $ms = $this->ms( $this->start[$this->depth] );
-        echo ( $cond ? 'SUCCESS: ' : '  ERROR: ' ) . "{$this->info[$this->depth]} ($ms ms)\n";
+        $wk->log( $cond ? 's' : 'e', "{$this->info[$this->depth]} ($ms ms)" );
         $cond ? $this->successful++ : $this->failed++;
+        return $cond;
     }
 
     public function finish()
@@ -69,9 +71,9 @@ class tester
 }
 
 echo "   TEST: WavesKit\n";
-$t = new tester( $wk );
+$t = new tester();
 
-// https://docs.wavesplatform.com/en/technical-details/cryptographic-practical-details.html
+$wk->log( 'i', 'https://docs.wavesplatform.com/en/waves-environment/waves-protocol/cryptographic-practical-details.html' );
 
 $t->pretest( 'base58Decode' );
 {
@@ -212,6 +214,297 @@ $t->pretest( "verify (lastbitflip)" );
     $addr = $wk->getAddress();
     $t->test( $addr !== $addr_saved && $wk->verify( $sig, $msg ) === true );
     $wk->setLastBitFlip( false );
+}
+
+$wk->log( 'i', 'check transactions' );
+
+$t->pretest( "64-bit required for transactions" );
+{
+    if( !$t->test( PHP_INT_SIZE >= 8 ) )
+    {
+        $t->finish();
+        exit( 1 );
+    }
+}
+
+if( file_exists( __DIR__ . '/private.php' ) )
+    require_once __DIR__ . '/private.php';
+
+$wavesAmount = 1000000000;
+$confirmations = 1;
+$sleep = 10;
+
+$t->pretest( 'private faucet ready' );
+{
+    $wkFaucet = new WavesKit( 'T' );
+    $wkFaucet->setSeed( getenv( 'WAVESKIT_SEED' ) );
+    $address = $wkFaucet->getAddress();
+    $balance = $wkFaucet->balance();
+    $balance = $balance[0]['balance'];
+    $t->test( $address === '3NCmJ4aPa743tupRPae7MaHJssaotosou9W' && $balance >= 1000000000 );
+    $wkFaucet->log( 'i', "faucet = $address (" . number_format( $balance / 100000000, 8, '.', '' ) . ' Waves)' );
+}
+
+$t->pretest( 'new tester' );
+{
+    $wk = new WavesKit( $wkFaucet->getChainId() );
+    $wk->setSeed( $wk->randomSeed() );
+    $address = $wk->getAddress();
+    $balance = $wk->balance();
+    $balance = $balance[0]['balance'];
+    $tx = $wk->getTransactions();
+
+    $t->test( $balance === 0 && $tx === false );
+    $wk->log( 'i', "tester = $address" );
+}
+
+if( $balance < $wavesAmount )
+{
+    $wavesAmountPrint = number_format( $wavesAmount / 100000000, 8, '.', '' ) . ' Waves';
+    $t->pretest( "txTransfer faucet => tester ($wavesAmountPrint)" );
+    {
+        $tx = $wkFaucet->txTransfer( $wk->getAddress(), $wavesAmount );
+        $tx = $wkFaucet->txSign( $tx );
+        $tx = $wkFaucet->txBroadcast( $tx );
+        $tx = $wkFaucet->ensure( $tx, $confirmations, $sleep );
+
+        $balance = $wk->balance();
+        $balance = $balance[0]['balance'];
+        $t->test( $balance === $wavesAmount );
+    }
+}
+
+$tokenQuantity = mt_rand( 1000000, 9999999 );
+$tokenDecimals = mt_rand( 0, 8 );
+$tokenName = "wk-$tokenQuantity-$tokenDecimals";
+$t->pretest( "txIssue ($tokenName)" );
+{
+    $tokenDescription = 'Asset test @ ' . date( 'Y.m.d H:i:s' );
+    
+    $tx = $wk->txIssue( $tokenName, $tokenDescription, $tokenQuantity, $tokenDecimals, true );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $tokenId = $tx['id'];
+    $balance = $wk->balance();
+    $balance = $balance[$tokenId]['balance'];
+
+    $t->test( $balance === $tokenQuantity );
+}
+
+$t->pretest( "txReissue (x2)" );
+{    
+    $tx = $wk->txReissue( $tokenId, $tokenQuantity, false );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $balance = $wk->balance();
+    $balance = $balance[$tokenId]['balance'];
+
+    $t->test( $balance === $tokenQuantity * 2 );
+}
+
+$t->pretest( "txReissue (reissue = false)" );
+{    
+    $tx = $wk->txReissue( $tokenId, $tokenQuantity, false );
+    $tx = $wk->txSign( $tx );
+    $wk->log( 'i', "next ERROR may be expected" );
+    $tx = $wk->txBroadcast( $tx );
+
+    $t->test( $tx === false );
+}
+
+$t->pretest( "txBurn (x/2)" );
+{    
+    $tx = $wk->txBurn( $tokenQuantity, $tokenId );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $balance = $wk->balance();
+    $balance = $balance[$tokenId]['balance'];
+
+    $t->test( $balance === $tokenQuantity );
+}
+
+$t->pretest( "txSponsorship" );
+{    
+    $tx = $wk->txSponsorship( $tokenId, 1 );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $balance = $wk->balance();
+    $balance = $balance[0]['balance'];
+
+    $options = [ 'fee' => 1, 'feeAssetId' => $tokenId ];
+    $tx = $wk->txTransfer( $wkFaucet->getAddress(), 1, $tokenId, $options );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $balanceNew = $wk->balance();
+    $balanceNew = $balanceNew[0]['balance'];
+
+    $t->test( $tx !== false && $balance - $balanceNew === 100000 );
+}
+
+$t->pretest( "txLease + txLeaseCancel" );
+{
+    $balance = $wk->balance();
+    $balance = $balance[0]['balance'];
+    $leaseAmount = (int)( $balance / 2 );
+
+    $tx = $wk->txLease( $wkFaucet->getAddress(), $leaseAmount );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $leaseId = $tx['id'];
+
+    $tx = $wk->txTransfer( $wkFaucet->getAddress(), $leaseAmount );
+    $tx = $wk->txSign( $tx );
+    $wk->log( 'i', "next ERROR may be expected" );
+    $tx = $wk->txBroadcast( $tx );
+
+    $leasedTransfer = $tx;
+
+    $tx = $wk->txLeaseCancel( $leaseId );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, 0, $sleep );
+
+    $t->test( $tx !== false && $leasedTransfer === false );
+}
+
+$alias = 'waveskit_' . substr( sha1( $wk->getAddress() ), 0, 8 );
+$t->pretest( "txAlias ($alias)" );
+{
+    $tx = $wk->txAlias( $alias );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $address = $wk->getAddressByAlias( $alias );
+
+    $t->test( $wk->getAddressByAlias( $alias ) === $wk->getAddress() );
+}
+
+$n = mt_rand( 1, 100 );
+$t->pretest( "txMass (x$n)" );
+{
+    $recipients = [];
+    $amounts = [];
+    $temp = new WavesKit( $wk->getChainId() );
+    for( $i = 0; $i < $n; $i++ )
+    {
+        $temp->setSeed( $temp->randomSeed() );
+        $recipients[] = $temp->getAddress();
+        $amounts[] = mt_rand( 1, 10000 );
+    }
+
+    $tx = $wk->txMass( $recipients, $amounts, $tokenId );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $balancesOK = true;
+    for( $i = 0; $i < $n; $i++ )
+    {
+        $balance = $wk->balance( $recipients[$i] );
+        $balance = $balance[$tokenId]['balance'];
+        $balancesOK &= $balance === $amounts[$i];
+    }
+
+    $t->test( $balancesOK );
+}
+
+$n = mt_rand( 1, 100 );
+$t->pretest( "txData (x$n)" );
+{
+    $data = [];
+    for( $i = 0; $i < $n; $i++ )
+        $data["key_$i"] = mt_rand( 0, 1 ) ? "value_$i" : $i;
+
+    $tx = $wk->txData( $data );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $dataOK = true;
+    foreach( $data as $key => $value )
+    {
+        if( $value !== $wk->getData( $key ) )
+            $value = $wk->getData( $key );
+
+        $dataOK &= $value === $wk->getData( $key );
+    }
+
+    $t->test( $dataOK );
+}
+
+$t->pretest( "txSetScript" );
+{
+    $publicKey = $wkFaucet->getPublicKey();
+    $script = "sigVerify( tx.bodyBytes, tx.proofs[0], base58'$publicKey' )";
+    $script = $wk->compile( $script );
+
+    $tx = $wk->txSetScript( $script['script'] );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $tx = $wk->txSetScript( null );
+    $tx['fee'] = $wk->calculateFee( $tx );
+    $tx = $wkFaucet->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $t->test( $tx !== false );
+}
+
+$tokenName = "s$tokenName";
+$t->pretest( "txIssue + txSetAssetScript (s$tokenName)" );
+{
+    $tokenDescription = 'Smart asset test @ ' . date( 'Y.m.d H:i:s' );
+
+    $script = $wk->compile( 'true' )['script'];
+    $tx = $wk->txIssue( $tokenName, $tokenDescription, $tokenQuantity, $tokenDecimals, true, $script );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $tokenId = $tx['id'];
+    $balance = $wk->balance();
+    $balance = $balance[$tokenId]['balance'];
+    $balanceOK = $balance === $tokenQuantity;
+
+    $script = $wk->compile( 'false' )['script'];
+    $tx = $wk->txSetAssetScript( $tokenId, $script );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $tx = $wk->txReissue( $tokenId, $tokenQuantity, false );
+    $tx = $wk->txSign( $tx );
+    $wk->log( 'i', "next ERROR may be expected" );
+    $tx = $wk->txBroadcast( $tx );
+
+    $t->test( $balanceOK && $tx === false );
+}
+
+$t->pretest( 'txTransfer (return Waves)' );
+{
+    $balance = $wk->balance();
+    $balance = $balance[0]['balance'];
+
+    $tx = $wk->txTransfer( $wkFaucet->getAddress(), $balance - 100000 );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+
+    $t->test( $tx !== false );
 }
 
 $t->finish();
