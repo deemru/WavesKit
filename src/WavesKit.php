@@ -61,7 +61,7 @@ interface WavesKitInterface
     public function txOrderBroadcast( $tx );
     public function txOrderCancel( $tx );
 
-    public function setNodeAddress( $nodeAddress, $cacheLifetime = 1 );
+    public function setNodeAddress( $nodeAddress, $cacheLifetime = 1, $backupAddresses );
     public function getNodeAddress();
 
     public function fetch( $url, $post = false, $data = null, $log = true );
@@ -70,6 +70,7 @@ interface WavesKitInterface
     public function getTransactionById( $id, $unconfirmed = false );
     public function ensure( $tx, $confirmations = 0, $sleep = 1, $lost = 30 );
     public function balance( $address );
+    public function compile( $script );
 }
 
 class WavesKit implements WavesKitInterface
@@ -201,8 +202,12 @@ class WavesKit implements WavesKitInterface
                 return false;
 
             $temp = explode( "\n", $temp );
-            if( $temp === false || count( $temp ) < 2048 )
+            $n = count( $temp );
+            if( $temp === false || $n < 2048 )
                 return false;
+
+            for( $i = 0; $i < $n; $i++ )
+                $temp[$i] = trim( $temp[$i] );
 
             $english = $temp;
         }
@@ -379,11 +384,66 @@ class WavesKit implements WavesKitInterface
         return json_decode( $json, true, 512, JSON_BIGINT_AS_STRING );
     }
 
-    private function curl()
+    private function curl( $address )
     {
-        static $curl;
+        if( false === ( $curl = curl_init() ) )
+            return false;
 
-        if( !isset( $this->wk['nodeAddress'] ) )
+        if( false === curl_setopt_array( $curl, [
+            CURLOPT_CONNECTTIMEOUT  => 5,
+            CURLOPT_TIMEOUT         => 5,
+            CURLOPT_URL             => $address,
+            CURLOPT_CONNECT_ONLY    => true,
+            CURLOPT_CAINFO          => CaBundle::getBundledCaBundlePath(),
+            //CURLOPT_SSL_VERIFYPEER  => false, // not secure
+        ] ) )
+            return false;
+
+        if( !curl_exec( $curl ) && 0 !== ( $errno = curl_errno( $curl ) ) )
+        {
+            $this->log( 'e', "curl error $errno: " . curl_error( $curl ) );
+            curl_close( $curl );
+            return false;
+        }
+
+        if( false === curl_setopt_array( $curl, [
+            CURLOPT_RETURNTRANSFER  => true,
+            CURLOPT_CONNECT_ONLY    => false,
+            CURLOPT_FOLLOWLOCATION  => true,
+            CURLOPT_MAXREDIRS       => 3,
+        ] ) )
+        {
+            curl_close( $curl );
+            return false;
+        }
+
+        return $curl;
+    }
+
+    public function setNodeAddress( $nodeAddress, $cacheLifetime = 1, $backupNodes = null )
+    {
+        if( !isset( $this->nodes ) ||
+            $this->nodes[0] !== $nodeAddress ||
+            $this->cacheLifetime !== $cacheLifetime )
+        {
+            $this->nodes = [ $nodeAddress ];
+            if( isset( $backupNodes ) )
+                $this->nodes = array_merge( $this->nodes, $backupNodes );
+ 
+            $this->curls = [];
+            $this->cacheLifetime = $cacheLifetime;
+            $this->resetNodeCache();
+        }
+    }
+
+    public function getNodeAddress()
+    {
+        return isset( $this->nodes[0] ) ? $this->nodes[0] : false;
+    }
+
+    public function fetch( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
+    {
+        if( !isset( $this->nodes[0] ) )
         {
             switch( $this->wk['chainId'] )
             {
@@ -398,71 +458,33 @@ class WavesKit implements WavesKitInterface
             }
         }
 
-        if( !is_resource( $curl ) )
+        $n = count( $this->nodes );
+        for( $i = 0; $i < $n; $i++ )
         {
-            if( false === ( $temp = curl_init() ) )
-                return false;
+            $curl = isset( $this->curls[$i] ) ? $this->curls[$i] : null;
+            $node = $this->nodes[$i];
 
-            if( false === curl_setopt_array( $temp, [
-                CURLOPT_CONNECTTIMEOUT  => 5,
-                CURLOPT_TIMEOUT         => 15,
-                CURLOPT_URL             => $this->wk['nodeAddress'],
-                CURLOPT_CONNECT_ONLY    => true,
-                CURLOPT_CAINFO          => CaBundle::getBundledCaBundlePath(),
-                //CURLOPT_SSL_VERIFYPEER  => false, // not secure
-            ] ) )
-                return false;
+            if( !is_resource( $curl ) && false === ( $curl = $this->curl( $node ) ) )
+                continue;
 
-            if( !curl_exec( $temp ) && 0 !== ( $errno = curl_errno( $temp ) ) )
+            if( false !== ( $fetch = $this->fetchCurl( $node, $curl, $url, $post, $data, $ignoreCodes, $headers ) ) )
             {
-                $this->log( 'e', "curl error $errno: " . curl_error( $temp ) );
-                curl_close( $temp );
-                return false;
+                $this->curls[$i] = $curl;
+                return $fetch;
             }
 
-            if( false === curl_setopt_array( $temp, [
-                CURLOPT_RETURNTRANSFER  => true,
-                CURLOPT_CONNECT_ONLY    => false,
-                CURLOPT_FOLLOWLOCATION  => true,
-                CURLOPT_MAXREDIRS       => 3,
-            ] ) )
-            {
-                curl_close( $temp );
+            if( isset( $ignoreCodes ) )
                 return false;
-            }
-
-            $curl = $temp;
         }
 
-        return $curl;
+        return false;
     }
 
-    public function setNodeAddress( $nodeAddress, $cacheLifetime = 1 )
+    private function fetchCurl( $host, $curl, $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
     {
-        if( !isset( $this->wk['nodeAddress'] ) ||
-            $this->wk['nodeAddress'] !== $nodeAddress ||
-            $this->wk['cacheLifetime'] !== $cacheLifetime )
-        {
-            $this->wk['nodeAddress'] = $nodeAddress;
-            $this->wk['cacheLifetime'] = $cacheLifetime;
-            $this->resetNodeCache();
-        }
-    }
-
-    public function getNodeAddress()
-    {
-        return isset( $this->wk['nodeAddress'] ) ? $this->wk['nodeAddress'] : false;
-    }
-
-    public function fetch( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
-    {
-        if( false === ( $curl = $this->curl() ) )
-            return false;
-
         if( !$post && null !== ( $data = $this->getNodeCache( $url ) ) )
             return $data;
 
-        $host = $this->wk['nodeAddress'];
         $options = [ CURLOPT_URL => $host . $url, CURLOPT_POST => $post ];
 
         if( isset( $headers ) )
@@ -504,32 +526,22 @@ class WavesKit implements WavesKitInterface
         return $data;
     }
 
-    private function setNodeCache( $newkey, $data )
+    private function setNodeCache( $key, $data )
     {
-        $now = microtime( true );
-        $cacheLifetime = $this->wk['cacheLifetime'];
+        if( count( $this->cache ) > 256 )
+            $this->resetNodeCache();
 
-        foreach( $this->wk['cache'][1] as $key => $time )
-            if( $now - $time > $cacheLifetime )
-            {
-                unset( $this->wk['cache'][0][$key] );
-                unset( $this->wk['cache'][1][$key] );
-            }
-
-        $this->wk['cache'][0][$newkey] = $data;
-        $this->wk['cache'][1][$newkey] = $now;
+        $this->cache[$key] = [ $data, microtime( true ) ];
     }
 
     private function getNodeCache( $key )
     {
-        $cacheLifetime = $this->wk['cacheLifetime'];
-        if( $cacheLifetime > 0 && isset( $this->wk['cache'][0][$key] ) )
+        if( $this->cacheLifetime > 0 && isset( $this->cache[$key] ) )
         {
-            if( microtime( true ) - $this->wk['cache'][1][$key] < $cacheLifetime )
-                return $this->wk['cache'][0][$key];
+            if( microtime( true ) - $this->cache[$key][1] < $this->cacheLifetime )
+                return $this->cache[$key][0];
 
-            unset( $this->wk['cache'][0][$key] );
-            unset( $this->wk['cache'][1][$key] );
+            unset( $this->cache[$key] );
         }
 
         return null;
@@ -537,7 +549,7 @@ class WavesKit implements WavesKitInterface
 
     private function resetNodeCache()
     {
-        $this->wk['cache'] = [ [], [] ];
+        $this->cache = [];
     }
 
     public function timestamp( $fromNode = false )
@@ -581,6 +593,20 @@ class WavesKit implements WavesKitInterface
             return false;
 
         if( false === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        return $json;
+    }
+
+    public function compile( $script )
+    {
+        if( false === ( $json = $this->fetch( '/utils/script/compile', true, $script ) ) )
+            return false;
+
+        if( false === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        if( !isset( $json['script'] ) )
             return false;
 
         return $json;
@@ -750,7 +776,7 @@ class WavesKit implements WavesKitInterface
             {
                 $this->log( 'w', "($id) change detected" );
                 $this->resetNodeCache();
-                return $this->ensure( $tx, $confirmations, $timeout );
+                return $this->ensure( $tx, $confirmations, $sleep, $timeout );
             }
 
             $this->log( 's', "($id) reached $c confirmations" );
@@ -819,6 +845,9 @@ class WavesKit implements WavesKitInterface
 
     public function txIssue( $name, $description, $quantity, $decimals, $reissuable, $script = null, $options = null )
     {
+        if( isset( $script ) && substr( $script, 0, 7 ) === 'base64:' )
+            $script = substr( $script, 7 );
+
         $tx = [];
         $tx['type'] = 3;
         $tx['version'] = 2;
@@ -974,6 +1003,9 @@ class WavesKit implements WavesKitInterface
 
     public function txSetScript( $script, $options = null )
     {
+        if( isset( $script ) && substr( $script, 0, 7 ) === 'base64:' )
+            $script = substr( $script, 7 );
+
         $tx = [];
         $tx['type'] = 13;
         $tx['version'] = 1;
@@ -1001,6 +1033,9 @@ class WavesKit implements WavesKitInterface
 
     public function txSetAssetScript( $assetId, $script, $options = null )
     {
+        if( isset( $script ) && substr( $script, 0, 7 ) === 'base64:' )
+            $script = substr( $script, 7 );
+
         $tx = [];
         $tx['type'] = 15;
         $tx['version'] = 1;
@@ -1098,7 +1133,7 @@ class WavesKit implements WavesKitInterface
             $tx['fee'] = 0;
 
         $size = strlen( $this->txBody( $tx ) );
-        return 100000 * ( 1 + intdiv( $size - 1, 1024 ) );
+        return 100000 * ( 1 + (int)( ( $size - 1 ) / 1024 ) );
     }
 
     public function txBody( $tx )
