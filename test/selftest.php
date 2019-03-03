@@ -73,7 +73,8 @@ class tester
 echo "   TEST: WavesKit\n";
 $t = new tester();
 
-$wk->log( 'i', 'https://docs.wavesplatform.com/en/waves-environment/waves-protocol/cryptographic-practical-details.html' );
+// https://docs.wavesplatform.com/en/waves-environment/waves-protocol/cryptographic-practical-details.html
+$wk->log( 'i', 'cryptographic-practical-details' );
 
 $t->pretest( 'base58Decode' );
 {
@@ -456,13 +457,15 @@ $t->pretest( "txSetScript" );
     $tx = $wk->txBroadcast( $tx );
     $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
+    $scriptOK = $script['script'] === $wk->getAddressScript()['script'];
+
     $tx = $wk->txSetScript( null );
     $tx['fee'] = $wk->calculateFee( $tx );
     $tx = $wkFaucet->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
     $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
-    $t->test( $tx !== false );
+    $t->test( $scriptOK && $tx !== false );
 }
 
 $tokenName = "s$tokenName";

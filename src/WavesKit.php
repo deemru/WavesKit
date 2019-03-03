@@ -69,8 +69,9 @@ interface WavesKitInterface
     public function height();
     public function getTransactionById( $id, $unconfirmed = false );
     public function ensure( $tx, $confirmations = 0, $sleep = 1, $lost = 30 );
-    public function balance( $address );
+    public function balance( $address = null );
     public function compile( $script );
+    public function getAddressScript( $address = null );
 }
 
 class WavesKit implements WavesKitInterface
@@ -601,6 +602,23 @@ class WavesKit implements WavesKitInterface
     public function compile( $script )
     {
         if( false === ( $json = $this->fetch( '/utils/script/compile', true, $script ) ) )
+            return false;
+
+        if( false === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        if( !isset( $json['script'] ) )
+            return false;
+
+        return $json;
+    }
+
+    public function getAddressScript( $address = null )
+    {
+        if( false === ( $address = isset( $address ) ? $address : $this->getAddress() ) )
+            return false;
+
+        if( false === ( $json = $this->fetch( "/addresses/scriptInfo/$address" ) ) )
             return false;
 
         if( false === ( $json = $this->json_decode( $json ) ) )
