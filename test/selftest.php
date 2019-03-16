@@ -436,12 +436,36 @@ $t->pretest( "txData (x$n)" );
 
     $dataOK = true;
     foreach( $data as $key => $value )
-    {
-        if( $value !== $wk->getData( $key ) )
-            $value = $wk->getData( $key );
-
         $dataOK &= $value === $wk->getData( $key );
+
+    $t->test( $dataOK );
+}
+
+$n = mt_rand( 1, 100 );
+$t->pretest( "txData (x$n) (binary)" );
+{
+    $data = [];
+    $type = 'binary';
+    for( $i = 0; $i < $n; $i++ )
+    {
+        $key = "key_$i";
+
+        $len = mt_rand( 16, 512 );
+        $value = '';
+        for( $j = 0; $j < $len; $j++ )
+            $value .= chr( mt_rand( 0, 255 ) );
+
+        $data[] = [ 'key' => $key, 'type' => $type, 'value' => $wk->binToBase64Tx( $value ) ];
     }
+
+    $tx = $wk->txData( null, [ 'data' => $data ] );
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
+
+    $dataOK = true;
+    foreach( $data as $rec )
+        $dataOK &= $rec['value'] === $wk->getData( $rec['key'] );
 
     $t->test( $dataOK );
 }
