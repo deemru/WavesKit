@@ -9,7 +9,7 @@
 - Best practices for all
 - Advanced features for pros
 
-## Usage
+## Basic usage
 
 ```php
 $wk = new WavesKit( 'T' );
@@ -18,12 +18,18 @@ $tx = $wk->txBroadcast( $wk->txSign( $wk->txTransfer( 'test', 1 ) ) );
 $tx = $wk->ensure( $tx );
 ```
 
+## Documentaion
+
+- WavesKit documention: [WavesKit.md](https://github.com/deemru/WavesKit/blob/master/docs/WavesKit.md)
+- Consider to learn self tests: [selftest.php](https://github.com/deemru/WavesKit/blob/master/test/selftest.php)
+- Self tests contain tests of all transactions which can easily be used as examples
+
 ## Requirements
 
 Will be installed automatically through `composer install`:
 
 - [PHP](http://php.net) >= 5.6
-- [deemru/abcode](https://packagist.org/packages/deemru/waveskit)
+- [deemru/abcode](https://packagist.org/packages/deemru/abcode)
 - [deemru/blake2b](https://packagist.org/packages/deemru/blake2b)
 - [deemru/curve25519](https://packagist.org/packages/deemru/curve25519)
 - [deemru/cryptash](https://packagist.org/packages/deemru/cryptash)
@@ -41,18 +47,12 @@ Will be installed automatically through `composer install`:
 
 ## Installation
 
-Require through Composer:
+Require through Composer: `composer require deemru/waveskit`
 
 ```json
 {
-    "minimum-stability": "dev",
     "require": {
         "deemru/waveskit": "*"
     }
 }
 ```
-
-## Notice
-
-- It is BETA
-- Lack of documentation

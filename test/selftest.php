@@ -84,7 +84,7 @@ $t->pretest( 'base58Decode' );
 $seed = 'manage manual recall harvest series desert melt police rose hollow moral pledge kitten position add';
 
 $t->pretest( 'base58Encode' );
-{    
+{
     $t->test( $wk->base58Encode( $seed ) === 'xrv7ffrv2A9g5pKSxt7gHGrPYJgRnsEMDyc4G7srbia6PhXYLDKVsDxnqsEqhAVbbko7N1tDyaSrWCZBoMyvdwaFNjWNPjKdcoZTKbKr2Vw9vu53Uf4dYpyWCyvfPbRskHfgt9q' );
 }
 
@@ -281,7 +281,7 @@ $tokenName = "wk-$tokenQuantity-$tokenDecimals";
 $t->pretest( "txIssue ($tokenName)" );
 {
     $tokenDescription = 'Asset test @ ' . date( 'Y.m.d H:i:s' );
-    
+
     $tx = $wk->txIssue( $tokenName, $tokenDescription, $tokenQuantity, $tokenDecimals, true );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
@@ -295,7 +295,7 @@ $t->pretest( "txIssue ($tokenName)" );
 }
 
 $t->pretest( "txReissue (x2)" );
-{    
+{
     $tx = $wk->txReissue( $tokenId, $tokenQuantity, false );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
@@ -308,7 +308,7 @@ $t->pretest( "txReissue (x2)" );
 }
 
 $t->pretest( "txReissue (reissue = false)" );
-{    
+{
     $tx = $wk->txReissue( $tokenId, $tokenQuantity, false );
     $tx = $wk->txSign( $tx );
     $wk->log( 'i', "next ERROR may be expected" );
@@ -318,8 +318,8 @@ $t->pretest( "txReissue (reissue = false)" );
 }
 
 $t->pretest( "txBurn (x/2)" );
-{    
-    $tx = $wk->txBurn( $tokenQuantity, $tokenId );
+{
+    $tx = $wk->txBurn( $tokenId, $tokenQuantity );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
     $tx = $wk->ensure( $tx, $confirmations, $sleep );
@@ -331,7 +331,7 @@ $t->pretest( "txBurn (x/2)" );
 }
 
 $t->pretest( "txSponsorship" );
-{    
+{
     $tx = $wk->txSponsorship( $tokenId, 1 );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
@@ -470,20 +470,20 @@ $t->pretest( "txData (x$n) (binary)" );
     $t->test( $dataOK );
 }
 
-$t->pretest( "txSetScript" );
+$t->pretest( "txAddressScript" );
 {
     $publicKey = $wkFaucet->getPublicKey();
     $script = "sigVerify( tx.bodyBytes, tx.proofs[0], base58'$publicKey' )";
     $script = $wk->compile( $script );
 
-    $tx = $wk->txSetScript( $script['script'] );
+    $tx = $wk->txAddressScript( $script['script'] );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
     $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $scriptOK = $script['script'] === $wk->getAddressScript()['script'];
 
-    $tx = $wk->txSetScript( null );
+    $tx = $wk->txAddressScript( null );
     $tx['fee'] = $wk->calculateFee( $tx );
     $tx = $wkFaucet->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
@@ -493,7 +493,7 @@ $t->pretest( "txSetScript" );
 }
 
 $tokenName = "s$tokenName";
-$t->pretest( "txIssue + txSetAssetScript (s$tokenName)" );
+$t->pretest( "txIssue + txAssetScript (s$tokenName)" );
 {
     $tokenDescription = 'Smart asset test @ ' . date( 'Y.m.d H:i:s' );
 
@@ -509,7 +509,7 @@ $t->pretest( "txIssue + txSetAssetScript (s$tokenName)" );
     $balanceOK = $balance === $tokenQuantity;
 
     $script = $wk->compile( 'false' )['script'];
-    $tx = $wk->txSetAssetScript( $tokenId, $script );
+    $tx = $wk->txAssetScript( $tokenId, $script );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
     $tx = $wk->ensure( $tx, $confirmations, $sleep );

@@ -9,87 +9,41 @@ use deemru\Cryptash;
 use deemru\Pairs;
 use Composer\CaBundle\CaBundle;
 
-interface WavesKitInterface
+class WavesKit
 {
-    public function __construct( $chainId = 'W', $logFunction = null );
-
-    public function base58Encode( $data );
-    public function base58Decode( $data );
-
-    public function sha256( $data );
-    public function blake2b256( $data );
-    public function keccak256( $data );
-    public function secureHash( $data );
-
-    public function setSodium( $enabled = true );
-    public function getSodium();
-
-    public function getChainId();
-    public function randomSeed( $words = 15 );
-    public function isAddressValid( $address );
-
-    public function setSeed( $seed, $raw = true );
-
-    public function setPrivateKey( $privateKey, $raw = false );
-    public function getPrivateKey( $raw = false );
-    public function setPublicKey( $publicKey, $raw = false );
-    public function getPublicKey( $raw = false );
-    public function setAddress( $address, $raw = false );
-    public function getAddress( $raw = false );
-
-    public function sign( $data );
-    public function verify( $sig, $data );
-
-    public function txIssue( $name, $description, $quantity, $decimals, $reissuable, $script = null, $options = null );
-    public function txTransfer( $recipient, $amount, $asset = null, $options = null );
-    public function txReissue( $asset, $quantity, $reissuable, $options = null );
-    public function txBurn( $amount, $asset, $options = null );
-    public function txLease( $recipient, $amount, $options = null );
-    public function txLeaseCancel( $leaseId, $options = null );
-    public function txAlias( $alias, $options = null );
-    public function txMass( $recipients, $amounts, $asset = null, $options = null );
-    public function txData( $userData, $options = null );
-    public function txSetScript( $script, $options = null );
-    public function txSponsorship( $assetId, $minSponsoredAssetFee, $options = null );
-    public function txSetAssetScript( $assetId, $script, $options = null );
-
-    public function txBody( $tx );
-    public function txSign( $tx, $proofIndex = null );
-    public function txBroadcast( $tx );
-
-    public function txOrder( $amountAsset, $priceAsset, $isSell, $price, $amount, $expiration, $options = null );
-    public function txOrderBroadcast( $tx );
-    public function txOrderCancel( $tx );
-
-    public function setNodeAddress( $nodeAddress, $cacheLifetime = 1, $backupAddresses );
-    public function getNodeAddress();
-
-    public function fetch( $url, $post = false, $data = null, $log = true );
-    public function timestamp( $fromNode = false );
-    public function height();
-    public function getTransactionById( $id, $unconfirmed = false );
-    public function ensure( $tx, $confirmations = 0, $sleep = 1, $lost = 30 );
-    public function balance( $address = null );
-    public function compile( $script );
-    public function getAddressScript( $address = null );
-}
-
-class WavesKit implements WavesKitInterface
-{
-    private $wk = [];
-
+    /**
+     * Creates WavesKit instance
+     *
+     * @param  string       $chainId        Blockchain identifier (default: 'W')
+     * @param  mixed|null   $logFunction    Log functionality (default: null)
+     *
+     * @return void
+     */
     public function __construct( $chainId = 'W', $logFunction = null )
     {
-        $this->wk['chainId'] = $chainId;
+        $this->wk = [ 'chainId' => $chainId ];
         if( isset( $logFunction ) )
             $this->wk['logFunction'] = $logFunction;
     }
 
+    /**
+     * Gets blockchain identifier value
+     *
+     * @return string Blockchain identifier value
+     */
     public function getChainId()
     {
         return $this->wk['chainId'];
     }
 
+    /**
+     * Logs a message with a level
+     *
+     * @param  string $level    Message level
+     * @param  string $message  Message
+     *
+     * @return void
+     */
     public function log( $level, $message )
     {
         if( isset( $this->wk['logFunction'] ) )
@@ -123,13 +77,58 @@ class WavesKit implements WavesKitInterface
         echo $log . $message . PHP_EOL;
     }
 
+    /**
+     * Encodes data to base58 string
+     *
+     * @param  string $data Data to encode
+     *
+     * @return string Encoded data
+     */
     public function base58Encode( $data ){ return ABCode::base58()->encode( $data ); }
+
+    /**
+     * Decodes data from base58 string
+     *
+     * @param  string $data Base58 string
+     *
+     * @return string|false Decoded data or FALSE on failure
+     */
     public function base58Decode( $data ){ return ABCode::base58()->decode( $data ); }
 
+    /**
+     * Hashes data with sha256
+     *
+     * @param  string $data Data to hash
+     *
+     * @return string Hash result
+     */
     public function sha256( $data ){ return hash( 'sha256', $data, true ); }
+
+    /**
+     * Hashes data with sha512
+     *
+     * @param  string $data Data to hash
+     *
+     * @return string Hash result
+     */
     public function sha512( $data ){ return hash( 'sha512', $data, true ); }
+
+    /**
+     * Hashes data with blake2b256 and keccak256
+     *
+     * @param  string $data Data to hash
+     *
+     * @return string Hash result
+     */
     public function secureHash( $data ){ return $this->keccak256( $this->blake2b256( $data ) ); }
 
+    /**
+     * Hashes data with keccak256
+     *
+     * @param  string $data Data to hash
+     *
+     * @return string Hash result
+     */
     public function keccak256( $data )
     {
         static $keccak;
@@ -143,6 +142,13 @@ class WavesKit implements WavesKitInterface
         return $keccak->hash( $data, 256, true );
     }
 
+    /**
+     * Hashes data with blake2b256
+     *
+     * @param  string $data Data to hash
+     *
+     * @return string Hash result
+     */
     public function blake2b256( $data )
     {
         static $sodiumBlake;
@@ -162,6 +168,14 @@ class WavesKit implements WavesKitInterface
             return $blake2b->hash( $data );
     }
 
+    /**
+     * Signs a message with a private key
+     *
+     * @param  string       $data Data to sign
+     * @param  string|null  $key  Private key (default: null)
+     *
+     * @return string|false Signature of data or FALSE on failure
+     */
     public function sign( $data, $key = null )
     {
         if( $this->getSodium() )
@@ -176,11 +190,21 @@ class WavesKit implements WavesKitInterface
 
         return $this->sign_php( $data, $key );
     }
-    private function sign_php( $data, $key = null ){ return $this->c25519()->sign( $data, isset( $key ) ? $key : $this->getPrivateKey( true ) ); }
-    private function sign_sodium( $data, $key = null ){ return $this->c25519()->sign_sodium( $data, isset( $key ) ? $key : $this->getPrivateKey( true ) ); }
-    private function sign_rseed( $data, $rseed, $key = null ){ return $this->c25519()->sign( $data, isset( $key ) ? $key : $this->getPrivateKey( true ), $rseed ); }
-    public function verify( $sig, $data, $key = null ){ return $this->c25519()->verify( $sig, $data, isset( $key ) ? $key : $this->getPublicKey( true ) ); }
 
+    private function sign_php( $data, $key = null ){ return $this->c25519()->sign( $data, isset( $key ) ? $key : $this->getPrivateKey() ); }
+    private function sign_sodium( $data, $key = null ){ return $this->c25519()->sign_sodium( $data, isset( $key ) ? $key : $this->getPrivateKey() ); }
+    private function sign_rseed( $data, $rseed, $key = null ){ return $this->c25519()->sign( $data, isset( $key ) ? $key : $this->getPrivateKey(), $rseed ); }
+
+    /**
+     * Verifies a signature of a message by a public key
+     *
+     * @param  string       $sig  Signature to verify
+     * @param  string       $data Signed data
+     * @param  string|null  $key  Public key (default: null)
+     *
+     * @return bool Returns TRUE if the signature is valid or FALSE on failure
+     */
+    public function verify( $sig, $data, $key = null ){ return $this->c25519()->verify( $sig, $data, isset( $key ) ? $key : $this->getPublicKey( true ) ); }
 
     private function c25519()
     {
@@ -192,6 +216,13 @@ class WavesKit implements WavesKitInterface
         return $c25519;
     }
 
+    /**
+     * Generates random seed string
+     *
+     * @param  int $words Words in seed string (default: 15)
+     *
+     * @return string|false Returns random seed or FALSE on failure
+     */
     public function randomSeed( $words = 15 )
     {
         static $english;
@@ -224,6 +255,14 @@ class WavesKit implements WavesKitInterface
         return $seed;
     }
 
+    /**
+     * Validates an address by a current blockchain identifier
+     *
+     * @param  mixed $address
+     * @param  mixed $raw
+     *
+     * @return bool Returns TRUE if the address is valid or FALSE on failure
+     */
     public function isAddressValid( $address, $raw = false )
     {
         $data = $raw ? $address : $this->base58Decode( $address );
@@ -255,19 +294,43 @@ class WavesKit implements WavesKitInterface
         unset( $this->wk['b58_address'] );
     }
 
+    /**
+     * Sets user seed string
+     *
+     * @param  string   $seed   Seed string
+     * @param  bool     $raw    String format is binary or base58 (default: binary)
+     *
+     * @return void
+     */
     public function setSeed( $seed, $raw = true )
     {
         $this->cleanup();
         $this->getPrivateKey( true, $raw ? $seed : $this->base58Decode( $seed ) );
     }
 
+    /**
+     * Sets private key
+     *
+     * @param  string   $privateKey Private key
+     * @param  bool     $raw        String format is binary or base58 (default: base58)
+     *
+     * @return void
+     */
     public function setPrivateKey( $privateKey, $raw = false )
     {
         $this->cleanup();
         $this->wk['privateKey'] = $raw ? $privateKey : $this->base58Decode( $privateKey );
     }
 
-    public function getPrivateKey( $raw = false, $seed = null )
+    /**
+     * Gets private key
+     *
+     * @param  bool         $raw    String format is binary or base58 (default: binary)
+     * @param  string|null  $seed   Seed string in binary format (default: null)
+     *
+     * @return string Private key
+     */
+    public function getPrivateKey( $raw = true, $seed = null )
     {
         if( !isset( $this->wk['privateKey'] ) )
         {
@@ -288,17 +351,32 @@ class WavesKit implements WavesKitInterface
         return $this->wk['b58_privateKey'];
     }
 
+    /**
+     * Sets public key
+     *
+     * @param  string   $publicKey  Public key
+     * @param  bool     $raw        String format is binary or base58 (default: base58)
+     *
+     * @return void
+     */
     public function setPublicKey( $publicKey, $raw = false )
     {
         $this->cleanup();
         $this->wk['publicKey'] = $raw ? $publicKey : $this->base58Decode( $publicKey );
     }
 
+    /**
+     * Gets public Key
+     *
+     * @param  bool $raw String format is binary or base58 (default: base58)
+     *
+     * @return string Public key
+     */
     public function getPublicKey( $raw = false )
     {
         if( !isset( $this->wk['publicKey'] ) )
         {
-            $temp = $this->getPrivateKey( true );
+            $temp = $this->getPrivateKey();
             if( $temp === false || strlen( $temp ) !== 32 )
                 return false;
             if( $this->getSodium() )
@@ -316,6 +394,14 @@ class WavesKit implements WavesKitInterface
         return $this->wk['b58_publicKey'];
     }
 
+    /**
+     * Sets address
+     *
+     * @param  string   $address    Address
+     * @param  bool     $raw        String format is binary or base58 (default: base58)
+     *
+     * @return void
+     */
     public function setAddress( $address, $raw = false )
     {
         $this->cleanup();
@@ -325,6 +411,13 @@ class WavesKit implements WavesKitInterface
         $this->wk['address'] = $raw ? $address : $this->base58Decode( $address );
     }
 
+    /**
+     * Gets address
+     *
+     * @param  bool $raw String format is binary or base58 (default: base58)
+     *
+     * @return string Address
+     */
     public function getAddress( $raw = false )
     {
         if( !isset( $this->wk['address'] ) )
@@ -347,6 +440,13 @@ class WavesKit implements WavesKitInterface
         return $this->wk['b58_address'];
     }
 
+    /**
+     * Sets sodium option
+     *
+     * @param  bool $enabled Enable or disable (default: enable)
+     *
+     * @return void
+     */
     public function setSodium( $enabled = true )
     {
         $this->cleanup();
@@ -356,11 +456,23 @@ class WavesKit implements WavesKitInterface
             unset( $this->wk['sodium'] );
     }
 
+    /**
+     * Gets sodium option status
+     *
+     * @return bool Enabled or disabled
+     */
     public function getSodium()
     {
         return isset( $this->wk['sodium'] );
     }
 
+    /**
+     * Sets last bit flip option
+     *
+     * @param  bool $enabled Enable or disable (default: enable)
+     *
+     * @return void
+     */
     public function setLastBitFlip( $enabled = true )
     {
         $this->cleanup( false );
@@ -370,16 +482,35 @@ class WavesKit implements WavesKitInterface
             unset( $this->wk['lastbitflip'] );
     }
 
+    /**
+     * Get last bit flip option status
+     *
+     * @return bool Enabled or disabled
+     */
     public function getLastBitFlip()
     {
         return isset( $this->wk['lastbitflip'] );
     }
 
+    /**
+     * Sets RSEED value (DANGEROUS)
+     *
+     * @param  string $rseed RSEED value
+     *
+     * @return void
+     */
     public function setRSEED( $rseed )
     {
         $this->wk['rseed'] = $rseed;
     }
 
+    /**
+     * json_decode wrapper for WavesKit
+     *
+     * @param  string $json
+     *
+     * @return array|false
+     */
     public function json_decode( $json )
     {
         return json_decode( $json, true, 512, JSON_BIGINT_AS_STRING );
@@ -421,6 +552,15 @@ class WavesKit implements WavesKitInterface
         return $curl;
     }
 
+    /**
+     * Sets node address with cache lifetime and backup node addresses
+     *
+     * @param  string       $nodeAddress    Main node address to work with
+     * @param  int          $cacheLifetime  Cache lifetime in seconds (default: 1)
+     * @param  array|null   $backupNodes    Backup node addresses to fallback
+     *
+     * @return void
+     */
     public function setNodeAddress( $nodeAddress, $cacheLifetime = 1, $backupNodes = null )
     {
         if( !isset( $this->nodes ) ||
@@ -430,18 +570,34 @@ class WavesKit implements WavesKitInterface
             $this->nodes = [ $nodeAddress ];
             if( isset( $backupNodes ) )
                 $this->nodes = array_merge( $this->nodes, $backupNodes );
- 
+
             $this->curls = [];
             $this->cacheLifetime = $cacheLifetime;
             $this->resetNodeCache();
         }
     }
 
+    /**
+     * Gets main node address
+     *
+     * @return string|false Main node address or FALSE on failure
+     */
     public function getNodeAddress()
     {
         return isset( $this->nodes[0] ) ? $this->nodes[0] : false;
     }
 
+    /**
+     * Fetches GET or POST response
+     *
+     * @param  string       $url            URL of request
+     * @param  bool         $post           POST or GET (default: GET)
+     * @param  string|null  $data           Data for POST (default: null)
+     * @param  array|null   $ignoreCodes    Array of ignored HTTP codes (default: null)
+     * @param  array|null   $headers        Optional HTTP headers (default: null)
+     *
+     * @return string|false Returns response data or FALSE on failure
+     */
     public function fetch( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
     {
         if( !isset( $this->nodes[0] ) )
@@ -553,6 +709,13 @@ class WavesKit implements WavesKitInterface
         $this->cache = [];
     }
 
+    /**
+     * Gets current timestamp
+     *
+     * @param  bool $fromNode Timstamp from node or local (default: local)
+     *
+     * @return int|false Timestamp or FALSE on failure
+     */
     public function timestamp( $fromNode = false )
     {
         if( $fromNode )
@@ -573,6 +736,11 @@ class WavesKit implements WavesKitInterface
         return (int)(( $sec + $usec ) * 1000 );
     }
 
+    /**
+     * Gets current blockchain height
+     *
+     * @return int|false Current blockchain height or FALSE on failure
+     */
     public function height()
     {
         if( false === ( $json = $this->fetch( '/blocks/height' ) ) )
@@ -587,6 +755,14 @@ class WavesKit implements WavesKitInterface
         return $json['height'];
     }
 
+    /**
+     * Gets a block at a certain height
+     *
+     * @param  int  $height     Height of the block
+     * @param  bool $headers    Just headers or the full block information (default: full block)
+     *
+     * @return array|false Block information or FALSE on failure
+     */
     public function getBlockAt( $height, $headers = false )
     {
         $headers = $headers ? '/headers' : '';
@@ -599,6 +775,13 @@ class WavesKit implements WavesKitInterface
         return $json;
     }
 
+    /**
+     * Compiles a script
+     *
+     * @param  string $script Text of the script
+     *
+     * @return array|false Compiled script information or FALSE on failure
+     */
     public function compile( $script )
     {
         if( false === ( $json = $this->fetch( '/utils/script/compile', true, $script ) ) )
@@ -613,6 +796,13 @@ class WavesKit implements WavesKitInterface
         return $json;
     }
 
+    /**
+     * Gets a script associated with an address
+     *
+     * @param  string|null $address Address to get the script for (default: null)
+     *
+     * @return string|false Address script information or FALSE on failure
+     */
     public function getAddressScript( $address = null )
     {
         if( false === ( $address = isset( $address ) ? $address : $this->getAddress() ) )
@@ -630,6 +820,13 @@ class WavesKit implements WavesKitInterface
         return $json;
     }
 
+    /**
+     * Broadcasts a transaction
+     *
+     * @param  array $tx Transaction as an array
+     *
+     * @return array|false Broadcasted transaction as an array or FALSE on failure
+     */
     public function txBroadcast( $tx )
     {
         if( !isset( $tx['proofs'] ) )
@@ -647,6 +844,13 @@ class WavesKit implements WavesKitInterface
         return $json;
     }
 
+    /**
+     * Broadcasts an order to a matcher
+     *
+     * @param  array $tx Order as an array
+     *
+     * @return array|false Broadcasted order as an array or FALSE on failure
+     */
     public function txOrderBroadcast( $tx )
     {
         if( false === ( $json = $this->fetch( '/matcher/orderbook', true, json_encode( $tx ) ) ) )
@@ -661,6 +865,13 @@ class WavesKit implements WavesKitInterface
         return $json['message'];
     }
 
+    /**
+     * Cancels an order on a matcher
+     *
+     * @param  array $tx Order as an array
+     *
+     * @return array|false Cancelled order as an array or FALSE on failure
+     */
     public function txOrderCancel( $tx )
     {
         $cancel = [ 'sender' => $tx['senderPublicKey'], 'orderId' => $tx['id'] ];
@@ -682,6 +893,13 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    /**
+     * Gets an address by an alias
+     *
+     * @param  string $alias Alias
+     *
+     * @return string|false Address or FALSE on failure
+     */
     public function getAddressByAlias( $alias )
     {
         if( false === ( $json = $this->fetch( "/alias/by-alias/$alias", false, null, [ 404 ] ) ) )
@@ -696,6 +914,14 @@ class WavesKit implements WavesKitInterface
         return $json['address'];
     }
 
+    /**
+     * Gets a transaction by its id
+     *
+     * @param  string   $id             Id of the transaction
+     * @param  bool     $unconfirmed    Search in unconfirmed or confirmed transactions (default: confirmed)
+     *
+     * @return array|false  Found transaction as an array or FALSE on failure
+     */
     public function getTransactionById( $id, $unconfirmed = false )
     {
         $unconfirmed = $unconfirmed ? '/unconfirmed' : '';
@@ -708,7 +934,16 @@ class WavesKit implements WavesKitInterface
         return $json;
     }
 
-    public function getTransactions( $address = null, $limit = 1000, $after = null )
+    /**
+     * Gets transactions for an address
+     *
+     * @param  string|null  $address    Address to get transactions (default: null)
+     * @param  int          $limit      Limit of transactions count (default: 100)
+     * @param  string|null  $after      Id of a transaction to paginate from (default: null)
+     *
+     * @return array|false Transactions as an arrays or FALSE on failure
+     */
+    public function getTransactions( $address = null, $limit = 100, $after = null )
     {
         $address = isset( $address ) ? $address : $this->getAddress();
         $after = isset( $after ) ? "?after=$after" : '';
@@ -724,6 +959,16 @@ class WavesKit implements WavesKitInterface
         return $json[0];
     }
 
+    /**
+     * Ensures a transaction confirmed and reached required confirmations
+     *
+     * @param  array    $tx             Transaction as an array
+     * @param  int      $confirmations  Number of confirmations to reach
+     * @param  int      $sleep          Seconds to sleep between requests
+     * @param  int      $timeout        Timeout to reach lost status
+     *
+     * @return array|false Ensured transaction as an array or FALSE on failure
+     */
     public function ensure( $tx, $confirmations = 0, $sleep = 1, $timeout = 30 )
     {
         if( $tx === false )
@@ -775,7 +1020,7 @@ class WavesKit implements WavesKitInterface
         }
 
         if( $sleep )
-            $this->log( 's', "($id) confirmed ($n)" );
+            $this->log( 's', "($id) confirmed" . ( $n > 1 ? " ($n)" : '' ) );
 
         if( $confirmations > 0 )
         {
@@ -803,6 +1048,14 @@ class WavesKit implements WavesKitInterface
 
         return $tx;
     }
+
+    /**
+     * Gets an address full balance
+     *
+     * @param  string|null $address Address to get balance (default: null)
+     *
+     * @return array|false Balance of all assets as an array or FALSE on failure
+     */
     public function balance( $address = null )
     {
         if( false === ( $address = isset( $address ) ? $address : $this->getAddress() ) )
@@ -848,6 +1101,14 @@ class WavesKit implements WavesKitInterface
         return chr( 2 ) . $network . pack( 'n', strlen( $recipient ) ) . $recipient;
     }
 
+    /**
+     * Makes alias transaction as an array
+     *
+     * @param  string $alias        Alias
+     * @param  array|null $options  Transaction options as an array (default: null)
+     *
+     * @return array Alias transaction as an array
+     */
     public function txAlias( $alias, $options = null )
     {
         $tx = [];
@@ -861,6 +1122,19 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    /**
+     * Makes issue transaction as an array
+     *
+     * @param  string       $name           Asset name
+     * @param  string       $description    Asset description
+     * @param  int          $quantity       Asset quantity to issue
+     * @param  int          $decimals       Asset decimals (0 .. 8)
+     * @param  bool         $reissuable     Asset is reissuable or not
+     * @param  string       $script         Asset script (default: null)
+     * @param  array|null   $options        Transaction options as an array (default: null)
+     *
+     * @return array Issue transaction as an array
+     */
     public function txIssue( $name, $description, $quantity, $decimals, $reissuable, $script = null, $options = null )
     {
         if( isset( $script ) && substr( $script, 0, 7 ) === 'base64:' )
@@ -883,6 +1157,16 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    /**
+     * Makes reissue transaction as an array
+     *
+     * @param  string       $asset        Asset id
+     * @param  int          $quantity       Asset quantity to reissue
+     * @param  bool         $reissuable     Asset is reissuable or not
+     * @param  array|null   $options        Transaction options as an array (default: null)
+     *
+     * @return array Reissue transaction as an array
+     */
     public function txReissue( $asset, $quantity, $reissuable, $options = null )
     {
         $tx = [];
@@ -898,7 +1182,16 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
-    public function txBurn( $quantity, $asset, $options = null )
+    /**
+     * Makes burn transaction as an array
+     *
+     * @param  string       $asset      Asset id
+     * @param  int          $quantity   Asset quantity to burn
+     * @param  array|null   $options    Transaction options as an array (default: null)
+     *
+     * @return array Burn transaction as an array
+     */
+    public function txBurn( $asset, $quantity, $options = null )
     {
         $tx = [];
         $tx['type'] = 6;
@@ -912,6 +1205,16 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    /**
+     * Makes transfer transaction as an array
+     *
+     * @param  string       $recipient  Recipient address or alias
+     * @param  int          $amount     Amount to send
+     * @param  string|null  $asset      Asset id (default: null)
+     * @param  array|null   $options    Transaction options as an array (default: null)
+     *
+     * @return array Transfer transaction as an array
+     */
     public function txTransfer( $recipient, $amount, $asset = null, $options = null )
     {
         if( isset( $asset ) && ( $asset === 0 || ( strlen( $asset ) === 5 && strtoupper( $asset ) === 'WAVES' ) ) )
@@ -932,6 +1235,15 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    /**
+     * Makes lease transaction as an array
+     *
+     * @param  string       $recipient  Recipient address or alias
+     * @param  int          $amount     Amount to lease
+     * @param  array|null   $options    Transaction options as an array (default: null)
+     *
+     * @return array Lease transaction as an array
+     */
     public function txLease( $recipient, $amount, $options = null )
     {
         $tx = [];
@@ -946,6 +1258,14 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    /**
+     * Makes lease cancel transaction as an array
+     *
+     * @param  string       $leaseId    Lease transaction id to cancel
+     * @param  array|null   $options    Transaction options as an array (default: null)
+     *
+     * @return array Lease cancel transaction as an array
+     */
     public function txLeaseCancel( $leaseId, $options = null )
     {
         $tx = [];
@@ -960,6 +1280,19 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    /**
+     * Makes order as an array
+     *
+     * @param  string       $amountAsset    Amount asset id
+     * @param  string       $priceAsset     Price asset id
+     * @param  bool         $isSell         Sell or buy
+     * @param  int          $amount         Order amount
+     * @param  int          $price          Order price
+     * @param  int          $expiration     Order expiration
+     * @param  array|null   $options        Order options as an array (default: null)
+     *
+     * @return array Order as an array
+     */
     public function txOrder( $amountAsset, $priceAsset, $isSell, $amount, $price, $expiration = 30 * 24 * 60 * 60 * 1000, $options = null )
     {
         $tx = [];
@@ -979,6 +1312,16 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    /**
+     * Makes mass transfer transaction as an array
+     *
+     * @param  array        $recipients Array of recipient addresses or aliases
+     * @param  array        $amounts    Array of amounts to send
+     * @param  string       $asset      Asset id to send
+     * @param  array|null   $options    Transaction options as an array (default: null)
+     *
+     * @return array|false Mass transfer transaction as an array or FALSE on failure
+     */
     public function txMass( $recipients, $amounts, $asset = null, $options = null )
     {
         $n = count( $recipients );
@@ -1006,6 +1349,14 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    /**
+     * Makes data transaction as an array
+     *
+     * @param  array        $userData   Array of key value pairs
+     * @param  array|null   $options    Transaction options as an array (default: null)
+     *
+     * @return array|false Data transaction as an array
+     */
     public function txData( $userData, $options = null )
     {
         $tx = [];
@@ -1019,7 +1370,15 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
-    public function txSetScript( $script, $options = null )
+    /**
+     * Makes address script transaction as an array
+     *
+     * @param  string       $script     Script to set
+     * @param  array|null   $options    Transaction options as an array (default: null)
+     *
+     * @return array|false Address script transaction as an array
+     */
+    public function txAddressScript( $script, $options = null )
     {
         if( isset( $script ) && substr( $script, 0, 7 ) === 'base64:' )
             $script = substr( $script, 7 );
@@ -1035,21 +1394,39 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
-    public function txSponsorship( $assetId, $minSponsoredAssetFee, $options = null )
+    /**
+     * Makes sponsorship transaction as an array
+     *
+     * @param  string       $asset                Asset id of the sponsorship
+     * @param  int          minSponsoredAssetFee    Minimal sponsored asset fee
+     * @param  array|null   $options                Transaction options as an array (default: null)
+     *
+     * @return array|false Sponsorship transaction as an array
+     */
+    public function txSponsorship( $asset, $minSponsoredAssetFee, $options = null )
     {
         $tx = [];
         $tx['type'] = 14;
         $tx['version'] = 1;
         $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
         $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
-        $tx['assetId'] = $assetId;
+        $tx['assetId'] = $asset;
         $tx['minSponsoredAssetFee'] = $minSponsoredAssetFee;
         $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000000;
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
         return $tx;
     }
 
-    public function txSetAssetScript( $assetId, $script, $options = null )
+    /**
+     * Makes asset script transaction as an array
+     *
+     * @param  string       $asset    Asset id to script change
+     * @param  string       $script     Asset script
+     * @param  array|null   $options    Transaction options as an array (default: null)
+     *
+     * @return array|false Asset script transaction as an array
+     */
+    public function txAssetScript( $asset, $script, $options = null )
     {
         if( isset( $script ) && substr( $script, 0, 7 ) === 'base64:' )
             $script = substr( $script, 7 );
@@ -1059,7 +1436,7 @@ class WavesKit implements WavesKitInterface
         $tx['version'] = 1;
         $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
         $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
-        $tx['assetId'] = $assetId;
+        $tx['assetId'] = $asset;
         $tx['script'] = isset( $options['script'] ) ? $options['script'] : isset( $script ) ? 'base64:' . $script : null;
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
         $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000000;
@@ -1075,22 +1452,50 @@ class WavesKit implements WavesKitInterface
         return $data;
     }
 
+    /**
+     * Converts string from base64 to base64 in transaction notation
+     *
+     * @param  string $base64 Base64 string
+     *
+     * @return string Base64 string in transaction notation
+     */
     public function base64ToBase64Tx( $base64 )
     {
         return 'base64:' . $base64;
     }
 
+    /**
+     * Converts string from base64 in transaction notation to base64
+     *
+     * @param  string $base64 Base64 string in transaction notation
+     *
+     * @return string Base64 string
+     */
     public function base64TxToBase64( $base64 )
     {
         return substr( $base64, 7 );
     }
 
+    /**
+     * Converts binary data to base64 string in transaction notation
+     *
+     * @param  string $bin Binary data
+     *
+     * @return string Base64 string in transaction notation
+     */
     public function binToBase64Tx( $bin )
     {
         return $this->base64ToBase64Tx( base64_encode( $bin ) );
     }
 
-    public function Base64TxToBin( $base64 )
+    /**
+     * Converts base64 string in transaction notation to binary data
+     *
+     * @param  string $base64 Base64 string in transaction notation
+     *
+     * @return string Binary data
+     */
+    public function base64TxToBin( $base64 )
     {
         return base64_decode( $this->base64TxToBase64( $base64 ) );
     }
@@ -1110,13 +1515,20 @@ class WavesKit implements WavesKitInterface
             case 'boolean':
                 return $body . chr( 1 ) . chr( ( $value === true || $value === 'true' ) ? 1 : 0 );
             case 'binary':
-                $value = $this->Base64TxToBin( $value );
+                $value = $this->base64TxToBin( $value );
                 return $body . chr( 2 ) . pack( 'n', strlen( $value ) ) . $value;
             case 'string':
                 return $body . chr( 3 ) . pack( 'n', strlen( $value ) ) . $value;
         }
     }
 
+    /**
+     * Calculates fee of a transaction on a node
+     *
+     * @param  array $tx Transaction as an array
+     *
+     * @return int|false Minimal fee for transaction or FALSE on failure
+     */
     public function calculateFee( $tx )
     {
         if( false === ( $json = $this->fetch( '/transactions/calculateFee', true, json_encode( $tx ) ) ) )
@@ -1131,9 +1543,19 @@ class WavesKit implements WavesKitInterface
         return $json['feeAmount'];
     }
 
-    public function getData( $key, $justValue = true )
+    /**
+     * Gets data value by an address key from the blockchain
+     *
+     * @param  string   $key        Key to get value
+     * @param  string   $address    Address of the key value pair (default: null)
+     * @param  bool     $justValue  Get just value or full information (default: just value)
+     *
+     * @return mixed|false Value from blockchain by the key
+     */
+    public function getData( $key, $address = null, $justValue = true )
     {
-        if( false === ( $json = $this->fetch( '/addresses/data/' . $this->getAddress() . "/$key", false, null, [ 404 ] ) ) )
+        $address = isset( $address ) ? $address : $this->getAddress();
+        if( false === ( $json = $this->fetch( "/addresses/data/$address/$key", false, null, [ 404 ] ) ) )
             return false;
 
         if( false === ( $json = $this->json_decode( $json ) ) )
@@ -1154,6 +1576,13 @@ class WavesKit implements WavesKitInterface
         return 100000 * ( 1 + (int)( ( $size - 1 ) / 1024 ) );
     }
 
+    /**
+     * Gets transaction body
+     *
+     * @param  string $tx Transaction as an array
+     *
+     * @return string|false Body of the transaction or FALSE on failure
+     */
     public function txBody( $tx )
     {
         $body = '';
@@ -1336,6 +1765,14 @@ class WavesKit implements WavesKitInterface
         return $body;
     }
 
+    /**
+     * Signs a transaction
+     *
+     * @param  array    $tx         Transaction as an array
+     * @param  int|null $proofIndex Index of a proof in proofs (default: null)
+     *
+     * @return array|false Signed transaction as an array or FALSE on failure
+     */
     public function txSign( $tx, $proofIndex = null )
     {
         if( false === ( $body = $this->txBody( $tx ) ) )
@@ -1365,11 +1802,28 @@ class WavesKit implements WavesKitInterface
         return $tx;
     }
 
+    /**
+     * Sets cryptash parameters
+     *
+     * @param  string   $secret Secret string
+     * @param  int      $iv     IV size
+     * @param  int      $mac    MAC size
+     * @param  string   $hash   Hash algorithm (default: sha256)
+     *
+     * @return void
+     */
     public function setCryptash( $secret, $iv = 4, $mac = 4, $hash = 'sha256' )
     {
         $this->wk['cryptash'] = new Cryptash( $secret, $iv, $mac, $hash );
     }
 
+    /**
+     * Encrypts data with cryptash parameters
+     *
+     * @param  string $data Data to encrypt
+     *
+     * @return string|false Encrypted data or FALSE on failure
+     */
     public function encryptash( $data )
     {
         if( !isset( $this->wk['cryptash'] ) )
@@ -1378,6 +1832,13 @@ class WavesKit implements WavesKitInterface
         return $this->wk['cryptash']->encryptash( $data );
     }
 
+    /**
+     * Decrypts data with cryptash parameters
+     *
+     * @param  string $data Data to decrypt
+     *
+     * @return string|false Decrypted data or FALSE on failure
+     */
     public function decryptash( $data )
     {
         if( !isset( $this->wk['cryptash'] ) )
@@ -1393,6 +1854,13 @@ class WavesKit implements WavesKitInterface
         return false;
     }
 
+    /**
+     * Sets database pairs path
+     *
+     * @param  mixed $path Path or an existing PDO for the database
+     *
+     * @return void
+     */
     public function setPairsDatabase( $path )
     {
         $this->wk['pairs']['transactions'] = new Pairs( $path, 'savedTransactions', true, 'TEXT UNIQUE|INTEGER|0|0' );
@@ -1465,7 +1933,7 @@ class WavesKit implements WavesKitInterface
         }
     }
 
-    public function getNewTransaction( $lastTransaction )
+    private function getNewTransaction( $lastTransaction )
     {
         if( false === ( $transaction = $this->getTransactions( null, 1 ) ) )
             return false;
@@ -1477,6 +1945,16 @@ class WavesKit implements WavesKitInterface
         return false;
     }
 
+    /**
+     * Monitors for new transaction in realtime
+     *
+     * @param  callable $callback       Function to call when new transactions apear
+     * @param  int      $confirmations  Number of confirmations to reach stability
+     * @param  int      $depth          Minimal height to scan back
+     * @param  int      $sleep          Seconds to sleep between requests
+     *
+     * @return bool TRUE if monitoring was successful or FALSE on failure
+     */
     public function txMonitor( $callback, $confirmations = 2, $depth = 0, $sleep = 1 )
     {
         if( false === ( $pairs = $this->getPairsDatabase() ) )
