@@ -91,7 +91,7 @@ $t->pretest( 'base58Encode' );
 $t->pretest( 'getPrivateKey' );
 {
     $wk->setSeed( $seed );
-    $t->test( $wk->getPrivateKey() === '49mgaSSVQw6tDoZrHSr9rFySgHHXwgQbCRwFssboVLWX' );
+    $t->test( $wk->getPrivateKey( false ) === '49mgaSSVQw6tDoZrHSr9rFySgHHXwgQbCRwFssboVLWX' );
 }
 
 $t->pretest( 'getPublicKey' );
