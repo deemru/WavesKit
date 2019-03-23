@@ -43,6 +43,7 @@
 |[randomSeed](#waveskitrandomseed)|Generates random seed string|
 |[secureHash](#waveskitsecurehash)|Hashes data with blake2b256 and keccak256|
 |[setAddress](#waveskitsetaddress)|Sets address|
+|[setBestNode](#waveskitsetbestnode)|Internally sets nodes in order of priority by the current height and response time|
 |[setCryptash](#waveskitsetcryptash)|Sets cryptash parameters|
 |[setLastBitFlip](#waveskitsetlastbitflip)|Sets last bit flip option|
 |[setNodeAddress](#waveskitsetnodeaddress)|Sets node address with cache lifetime and backup node addresses|
@@ -1069,6 +1070,32 @@ Sets address
 : Address  
 * `(bool) $raw`
 : String format is binary or base58 (default: base58)  
+
+**Return Values**
+
+`void`
+
+
+
+
+<hr />
+
+
+### WavesKit::setBestNode  
+
+**Description**
+
+```php
+public setBestNode (void)
+```
+
+Internally sets nodes in order of priority by the current height and response time 
+
+ 
+
+**Parameters**
+
+`This function has no parameters.`
 
 **Return Values**
 

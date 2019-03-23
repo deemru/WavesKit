@@ -563,18 +563,13 @@ class WavesKit
      */
     public function setNodeAddress( $nodeAddress, $cacheLifetime = 1, $backupNodes = null )
     {
-        if( !isset( $this->nodes ) ||
-            $this->nodes[0] !== $nodeAddress ||
-            $this->cacheLifetime !== $cacheLifetime )
-        {
-            $this->nodes = [ $nodeAddress ];
-            if( isset( $backupNodes ) )
-                $this->nodes = array_merge( $this->nodes, $backupNodes );
+        $this->nodes = [ $nodeAddress ];
+        if( isset( $backupNodes ) )
+            $this->nodes = array_merge( $this->nodes, $backupNodes );
 
-            $this->curls = [];
-            $this->cacheLifetime = $cacheLifetime;
-            $this->resetNodeCache();
-        }
+        $this->curls = [];
+        $this->cacheLifetime = $cacheLifetime;
+        $this->resetNodeCache();
     }
 
     /**
@@ -585,6 +580,24 @@ class WavesKit
     public function getNodeAddress()
     {
         return isset( $this->nodes[0] ) ? $this->nodes[0] : false;
+    }
+
+    private function setDefaultNode()
+    {
+        if( !isset( $this->nodes[0] ) || $this->nodes[0] === false )
+        {
+            switch( $this->wk['chainId'] )
+            {
+                case 'W':
+                    $this->setNodeAddress( 'https://nodes.wavesplatform.com' );
+                    break;
+                case 'T':
+                    $this->setNodeAddress( 'https://testnode2.wavesnodes.com' );
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     /**
@@ -600,21 +613,7 @@ class WavesKit
      */
     public function fetch( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
     {
-        if( !isset( $this->nodes[0] ) )
-        {
-            switch( $this->wk['chainId'] )
-            {
-                case 'W':
-                    $this->setNodeAddress( 'https://nodes.wavesplatform.com' );
-                    break;
-                case 'T':
-                    $this->setNodeAddress( 'https://testnode2.wavesnodes.com' );
-                    break;
-                default:
-                    return false;
-            }
-        }
-
+        $this->setDefaultNode();
         $n = count( $this->nodes );
         for( $i = 0; $i < $n; $i++ )
         {
@@ -630,11 +629,36 @@ class WavesKit
                 return $fetch;
             }
 
-            if( isset( $ignoreCodes ) )
+            if( isset( $ignoreCodes ) && is_resource( $curl ) &&
+                in_array( curl_getinfo( $curl, CURLINFO_HTTP_CODE ), $ignoreCodes ) )
                 return false;
         }
 
         return false;
+    }
+
+    /**
+     * Internally sets nodes in order of priority by the current height and response time
+     *
+     * @return void
+     */
+    public function setBestNode()
+    {
+        $this->setDefaultNode();
+        $nodes = $this->nodes;
+        $best = [];
+        $n = count( $nodes );
+        for( $i = 0; $i < $n; $i++ )
+        {
+            $node = $nodes[$i];
+            $this->setNodeAddress( $node, $this->cacheLifetime );
+            $tt = microtime( true );
+            $height = $this->height();
+            $best[$node] = $height + ( microtime( true ) - $tt ) / 10;
+        }
+        arsort( $best );
+        $best = array_keys( $best );
+        $this->setNodeAddress( $best[0], $this->cacheLifetime, array_slice( $best, 1 ) );
     }
 
     private function fetchCurl( $host, $curl, $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )

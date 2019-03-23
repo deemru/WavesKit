@@ -234,10 +234,20 @@ if( file_exists( __DIR__ . '/private.php' ) )
 $wavesAmount = 1000000000;
 $confirmations = 1;
 $sleep = 10;
+$nodes =
+[
+    'https://testnode1.wavesnodes.com',
+    'https://testnode2.wavesnodes.com',
+    'https://testnode3.wavesnodes.com',
+    'https://testnode4.wavesnodes.com',
+];
 
 $t->pretest( 'private faucet ready' );
 {
     $wkFaucet = new WavesKit( 'T' );
+    $wkFaucet->setNodeAddress( $nodes[0], 1, array_slice( $nodes, 1 ) );
+    $wkFaucet->setBestNode();
+    $wkFaucet->log( 'i', 'best node = ' . $wkFaucet->getNodeAddress() );
     $wkFaucet->setSeed( getenv( 'WAVESKIT_SEED' ) );
     $address = $wkFaucet->getAddress();
     $balance = $wkFaucet->balance();
@@ -249,6 +259,7 @@ $t->pretest( 'private faucet ready' );
 $t->pretest( 'new tester' );
 {
     $wk = new WavesKit( $wkFaucet->getChainId() );
+    $wk->setNodeAddress( $wkFaucet->getNodeAddress() );
     $wk->setSeed( $wk->randomSeed() );
     $address = $wk->getAddress();
     $balance = $wk->balance();
