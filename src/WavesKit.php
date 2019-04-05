@@ -617,21 +617,31 @@ class WavesKit
         $n = count( $this->nodes );
         for( $i = 0; $i < $n; $i++ )
         {
-            $curl = isset( $this->curls[$i] ) ? $this->curls[$i] : null;
             $node = $this->nodes[$i];
-
-            if( !is_resource( $curl ) && false === ( $curl = $this->curl( $node ) ) )
-                continue;
-
-            if( false !== ( $fetch = $this->fetchCurl( $node, $curl, $url, $post, $data, $ignoreCodes, $headers ) ) )
+            if( isset( $this->curls[$i] ) )
+                $curl = $this->curls[$i];
+            else
             {
+                $curl = $this->curl( $node );
+                if( $curl === false )
+                    continue;
+
                 $this->curls[$i] = $curl;
-                return $fetch;
             }
 
-            if( isset( $ignoreCodes ) && is_resource( $curl ) &&
-                in_array( curl_getinfo( $curl, CURLINFO_HTTP_CODE ), $ignoreCodes ) )
+            $fetch = $this->fetchCurl( $node, $curl, $url, $post, $data, $ignoreCodes, $headers );
+
+            if( false !== $fetch )
+                return $fetch;
+
+            if( isset( $ignoreCodes ) && in_array( curl_getinfo( $curl, CURLINFO_HTTP_CODE ), $ignoreCodes ) )
                 return false;
+
+            if( curl_getinfo( $curl, CURLINFO_HTTP_CODE ) === 0 )
+            {
+                curl_close( $curl );
+                unset( $this->curls[$i] );
+            }
         }
 
         return false;
