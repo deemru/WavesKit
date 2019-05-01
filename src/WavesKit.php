@@ -521,14 +521,20 @@ class WavesKit
         if( false === ( $curl = curl_init() ) )
             return false;
 
-        if( false === curl_setopt_array( $curl, [
-            CURLOPT_CONNECTTIMEOUT  => 5,
-            CURLOPT_TIMEOUT         => 5,
-            CURLOPT_URL             => $address,
-            CURLOPT_CONNECT_ONLY    => true,
-            CURLOPT_CAINFO          => CaBundle::getBundledCaBundlePath(),
-            //CURLOPT_SSL_VERIFYPEER  => false, // not secure
-        ] ) )
+        $timeout = defined( 'WK_CURL_TIMEOUT' ) ? WK_CURL_TIMEOUT : 5;
+        $options = [ CURLOPT_CONNECTTIMEOUT  => $timeout,
+                     CURLOPT_TIMEOUT         => $timeout,
+                     CURLOPT_URL             => $address,
+                     CURLOPT_CONNECT_ONLY    => true,
+                     CURLOPT_CAINFO          => CaBundle::getBundledCaBundlePath() ];
+
+        if( defined( 'WK_CURL_UNSAFE' ) )
+        {
+            $options[CURLOPT_SSL_VERIFYPEER] = false;
+            $options[CURLOPT_SSL_VERIFYHOST] = false;
+        }
+
+        if( false === curl_setopt_array( $curl, $options ) )
             return false;
 
         if( !curl_exec( $curl ) && 0 !== ( $errno = curl_errno( $curl ) ) )
