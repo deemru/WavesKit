@@ -670,7 +670,7 @@ class WavesKit
             $this->setNodeAddress( $node, $this->cacheLifetime );
             $tt = microtime( true );
             $height = $this->height();
-            $best[$node] = $height + ( microtime( true ) - $tt ) / 10;
+            $best[$node] = $height + ( 1 - ( microtime( true ) - $tt ) / 10 );
         }
         arsort( $best );
         $best = array_keys( $best );
