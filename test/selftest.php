@@ -236,6 +236,7 @@ $confirmations = 1;
 $sleep = 10;
 $nodes =
 [
+    'https://example.com',
     'https://testnode1.wavesnodes.com',
     'https://testnode2.wavesnodes.com',
     'https://testnode3.wavesnodes.com',
@@ -246,8 +247,15 @@ $t->pretest( 'private faucet ready' );
 {
     $wkFaucet = new WavesKit( 'T' );
     $wkFaucet->setNodeAddress( $nodes[0], 1, array_slice( $nodes, 1 ) );
+    $wkFaucet->log( 'i', "next ERROR may be expected" );
     $wkFaucet->setBestNode();
     $wkFaucet->log( 'i', 'best node = ' . $wkFaucet->getNodeAddress() );
+    define( 'WK_CURL_SETBESTONERROR', true );
+    $wkFaucet->setNodeAddress( $nodes[0], 1, array_slice( $nodes, 1 ) );
+    $wkFaucet->log( 'i', "next ERROR may be expected" );
+    $wkFaucet->height();
+    $wkFaucet->log( 'i', "next ERROR may be expected" );
+    $wkFaucet->height();
     $wkFaucet->setSeed( getenv( 'WAVESKIT_SEED' ) );
     $address = $wkFaucet->getAddress();
     $balance = $wkFaucet->balance();

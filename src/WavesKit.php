@@ -541,6 +541,10 @@ class WavesKit
         {
             $this->log( 'e', "curl error $errno: " . curl_error( $curl ) );
             curl_close( $curl );
+
+            if( isset( $this->curlSetBestOnError ) && $this->curlSetBestOnError > 0 )
+                $this->curlSetBestOnError++;
+
             return false;
         }
 
@@ -576,6 +580,8 @@ class WavesKit
         $this->curls = [];
         $this->cacheLifetime = $cacheLifetime;
         $this->resetNodeCache();
+        if( count( $this->nodes ) > 1 && defined( 'WK_CURL_SETBESTONERROR' ) )
+            $this->curlSetBestOnError = 1;
     }
 
     /**
@@ -620,6 +626,15 @@ class WavesKit
     public function fetch( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
     {
         $this->setDefaultNode();
+
+        if( isset( $this->curlSetBestOnError ) && $this->curlSetBestOnError > 1 )
+        {
+            $this->curlSetBestOnError = 0;
+            $this->setBestNode();
+            $this->curlSetBestOnError = 1;
+            $this->log( 'i', 'curlSetBestOnError = ' . $this->getNodeAddress() );
+        }
+
         $n = count( $this->nodes );
         for( $i = 0; $i < $n; $i++ )
         {
@@ -638,10 +653,20 @@ class WavesKit
             $fetch = $this->fetchCurl( $node, $curl, $url, $post, $data, $ignoreCodes, $headers );
 
             if( false !== $fetch )
+            {
+                if( !$post )
+                    $this->setNodeCache( $url, $fetch );
+
                 return $fetch;
+            }
 
             if( isset( $ignoreCodes ) && in_array( curl_getinfo( $curl, CURLINFO_HTTP_CODE ), $ignoreCodes ) )
+            {
+                if( !$post )
+                    $this->setNodeCache( $url, false );
+
                 return false;
+            }
 
             if( curl_getinfo( $curl, CURLINFO_HTTP_CODE ) === 0 )
             {
@@ -705,26 +730,29 @@ class WavesKit
             if( !isset( $ignoreCodes ) || $errno !== 0 || !in_array( $code, $ignoreCodes ) )
             {
                 $curl_error = curl_error( $curl );
-                if( is_string( $data ) && false !== ( $json = $this->json_decode( $data ) ) && isset( $json['message'] ) )
+                if( is_string( $data ) && null !== ( $json = $this->json_decode( $data ) ) && isset( $json['message'] ) )
                 {
                     $status = isset( $json['error'] ) ? $json['error'] : ( isset( $json['status'] ) ? $json['status'] : '...' );
                     $this->log( 'e', "$host ($status)" . ( isset( $json['message'] ) ? " ({$json['message']})" : '' ) );
                 }
                 else
                     $this->log( 'e', "$host (HTTP $code) (cURL $errno" . ( empty( $curl_error ) ? ')' : ":$curl_error)" ) );
+
+                if( isset( $this->curlSetBestOnError ) && $this->curlSetBestOnError > 0 )
+                    $this->curlSetBestOnError++;
             }
 
             $data = false;
         }
-
-        if( !$post )
-            $this->setNodeCache( $url, $data );
 
         return $data;
     }
 
     private function setNodeCache( $key, $data )
     {
+        if( $this->cacheLifetime <= 0 )
+            return;
+
         if( count( $this->cache ) > 256 )
             $this->resetNodeCache();
 
@@ -763,7 +791,7 @@ class WavesKit
             if( false === ( $json = $this->fetch( '/utils/time' ) ) )
                 return false;
 
-            if( false === ( $json = $this->json_decode( $json ) ) )
+            if( null === ( $json = $this->json_decode( $json ) ) )
                 return false;
 
             if( !isset( $json['NTP'] ) )
@@ -786,11 +814,14 @@ class WavesKit
         if( false === ( $json = $this->fetch( '/blocks/height' ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
-            return false;
+        if( null === ( $json = $this->json_decode( $json ) ) ||
+            !isset( $json['height'] ) )
+        {
+            if( isset( $this->curlSetBestOnError ) && $this->curlSetBestOnError > 0 )
+                $this->curlSetBestOnError++;                     
 
-        if( !isset( $json['height'] ) )
             return false;
+        }
 
         return $json['height'];
     }
@@ -809,7 +840,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( "/blocks$headers/at/$height" ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
+        if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
         return $json;
@@ -827,7 +858,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( '/utils/script/compile', true, $script ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
+        if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
         if( !isset( $json['script'] ) )
@@ -851,7 +882,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( "/addresses/scriptInfo/$address" ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
+        if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
         if( !isset( $json['script'] ) )
@@ -875,7 +906,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( '/transactions/broadcast', true, json_encode( $tx ) ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
+        if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
         if( !isset( $json['id'] ) )
@@ -896,7 +927,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( '/matcher/orderbook', true, json_encode( $tx ) ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
+        if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
         if( !isset( $json['message']['id'] ) )
@@ -924,7 +955,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( "/matcher/orderbook/$amountAsset/$priceAsset/cancel", true, json_encode( $cancel ) ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
+        if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
         if( !isset( $json['orderId'] ) )
@@ -945,7 +976,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( "/alias/by-alias/$alias", false, null, [ 404 ] ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
+        if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
         if( !isset( $json['address'] ) )
@@ -968,7 +999,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( "/transactions$unconfirmed/info/$id", false, null, [ 404 ] ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
+        if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
         return $json;
@@ -990,7 +1021,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( "/transactions/address/$address/limit/$limit$after" ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
+        if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
         if( !isset( $json[0][0] ) )
@@ -1104,7 +1135,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( "/addresses/balance/$address" ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
+        if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
         $waves = $json;
@@ -1112,7 +1143,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( "/assets/balance/$address" ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
+        if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
         $balance = [];
@@ -1574,7 +1605,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( '/transactions/calculateFee', true, json_encode( $tx ) ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
+        if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
         if( !isset( $json['feeAmount'] ) )
@@ -1598,7 +1629,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( "/addresses/data/$address/$key", false, null, [ 404 ] ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) )
+        if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
         if( !isset( $json['value'] ) )
