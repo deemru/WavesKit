@@ -2054,13 +2054,20 @@ class WavesKit
 
             if( $refreshed )
             {
-                $this->log( 'i', 'save new transactions (' . count( $newTransactions ) . ')' );
+                $n = 0;
                 $pairs['transactions']->begin();
                 foreach( $newTransactions as $tx )
+                {
                     $pairs['transactions']->setKeyValue( $tx['id'], $tx['height'] );
+                    if( $tx['status'] === 'new' )
+                        $n++;
+                }
                 foreach( $newSignatures as $height => $signature )
                     $pairs['signatures']->setKeyValue( $height, $signature );
                 $pairs['transactions']->commit();
+
+                if( $n )
+                    $this->log( 'i', 'new transactions (' . $n . ')' );
             }
 
             if( $result > 0 )
