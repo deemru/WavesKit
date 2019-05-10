@@ -1006,6 +1006,24 @@ class WavesKit
     }
 
     /**
+     * Gets state changes of an invoke transaction by its id
+     *
+     * @param  string   $id             Id of the invoke transaction
+     *
+     * @return array|false  Invoke transaction with state changes as an array or FALSE on failure
+     */
+    public function getStateChanges( $id )
+    {
+        if( false === ( $json = $this->fetch( "/debug/stateChanges/info/$id", false, null, [ 404 ] ) ) )
+            return false;
+
+        if( null === ( $json = $this->json_decode( $json ) ) || !isset( $json['stateChanges'] ) )
+            return false;
+
+        return $json;
+    }
+
+    /**
      * Gets transactions for an address
      *
      * @param  string|null  $address    Address to get transactions (default: null)
