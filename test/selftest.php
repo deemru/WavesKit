@@ -441,12 +441,33 @@ $t->pretest( "txMass (x$n)" );
     $t->test( $balancesOK );
 }
 
-$n = mt_rand( 1, 100 );
+$n = mt_rand( 4, 100 );
 $t->pretest( "txData (x$n)" );
 {
     $data = [];
     for( $i = 0; $i < $n; $i++ )
-        $data["key_$i"] = mt_rand( 0, 1 ) ? "value_$i" : $i;
+    {
+        if( $i === 0 )
+        {
+            $integer = mt_rand();
+            $data["key_$i"] = $integer;
+        }
+        else if( $i === 1 )
+        {
+            $boolean = mt_rand( 0, 1 ) ? true : false;
+            $data["key_$i"] = $boolean;
+        }
+        else if( $i === 2 )
+        {
+            $binary = $wk->sha256( $wk->randomSeed() );
+            $data["key_$i"] = [ $binary ];
+        }
+        else
+        {
+            $string = $wk->randomSeed( 1 );
+            $data["key_$i"] = $string;
+        }
+    }
 
     $tx = $wk->txData( $data );
     $tx = $wk->txSign( $tx );
@@ -455,36 +476,17 @@ $t->pretest( "txData (x$n)" );
 
     $dataOK = true;
     foreach( $data as $key => $value )
-        $dataOK &= $value === $wk->getData( $key );
-
-    $t->test( $dataOK );
-}
-
-$n = mt_rand( 1, 100 );
-$t->pretest( "txData (x$n) (binary)" );
-{
-    $data = [];
-    $type = 'binary';
-    for( $i = 0; $i < $n; $i++ )
     {
-        $key = "key_$i";
-
-        $len = mt_rand( 16, 512 );
-        $value = '';
-        for( $j = 0; $j < $len; $j++ )
-            $value .= chr( mt_rand( 0, 255 ) );
-
-        $data[] = [ 'key' => $key, 'type' => $type, 'value' => $wk->binToBase64Tx( $value ) ];
+        if( is_array( $value ) )
+        {
+            $value = $value[0];
+            $dataOK &= $value === $wk->base64TxToBin( $wk->getData( $key ) );
+        }
+        else
+        {
+            $dataOK &= $value === $wk->getData( $key );
+        }
     }
-
-    $tx = $wk->txData( null, [ 'data' => $data ] );
-    $tx = $wk->txSign( $tx );
-    $tx = $wk->txBroadcast( $tx );
-    $tx = $wk->ensure( $tx, $confirmations, $sleep );
-
-    $dataOK = true;
-    foreach( $data as $rec )
-        $dataOK &= $rec['value'] === $wk->getData( $rec['key'] );
 
     $t->test( $dataOK );
 }
@@ -541,12 +543,27 @@ $t->pretest( "txIssue + txAssetScript (s$tokenName)" );
     $t->test( $balanceOK && $tx === false );
 }
 
-$t->pretest( 'txTransfer (return Waves)' );
+$t->pretest( 'txInvokeScript (return Waves)' );
 {
     $balance = $wk->balance();
     $balance = $balance[0]['balance'];
 
-    $tx = $wk->txTransfer( $wkFaucet->getAddress(), $balance - 100000 );
+    $args =
+    [
+        $wkFaucet->getAddress(),
+        $balance - 500000,
+        [ $wk->sha256( $wkFaucet->getAddress() ) ],
+        true,
+    ];
+    $payments =
+    [
+        [
+            "amount" => $balance - 500000,
+            "assetId" => null,
+        ],
+    ];
+
+    $tx = $wk->txInvokeScript( '3NBaYzWT2odsyrZ2u1ghsrHinBm4xFRAgLX', 'retransmit', $args, $payments );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
 

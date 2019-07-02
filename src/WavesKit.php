@@ -1196,7 +1196,7 @@ class WavesKit
      * @param  string $alias        Alias
      * @param  array|null $options  Transaction options as an array (default: null)
      *
-     * @return array Alias transaction as an array
+     * @return array Alias transaction as an array or FALSE on failure
      */
     public function txAlias( $alias, $options = null )
     {
@@ -1222,7 +1222,7 @@ class WavesKit
      * @param  string       $script         Asset script (default: null)
      * @param  array|null   $options        Transaction options as an array (default: null)
      *
-     * @return array Issue transaction as an array
+     * @return array Issue transaction as an array or FALSE on failure
      */
     public function txIssue( $name, $description, $quantity, $decimals, $reissuable, $script = null, $options = null )
     {
@@ -1254,7 +1254,7 @@ class WavesKit
      * @param  bool         $reissuable     Asset is reissuable or not
      * @param  array|null   $options        Transaction options as an array (default: null)
      *
-     * @return array Reissue transaction as an array
+     * @return array Reissue transaction as an array or FALSE on failure
      */
     public function txReissue( $asset, $quantity, $reissuable, $options = null )
     {
@@ -1278,7 +1278,7 @@ class WavesKit
      * @param  int          $quantity   Asset quantity to burn
      * @param  array|null   $options    Transaction options as an array (default: null)
      *
-     * @return array Burn transaction as an array
+     * @return array Burn transaction as an array or FALSE on failure
      */
     public function txBurn( $asset, $quantity, $options = null )
     {
@@ -1302,7 +1302,7 @@ class WavesKit
      * @param  string|null  $asset      Asset id (default: null)
      * @param  array|null   $options    Transaction options as an array (default: null)
      *
-     * @return array Transfer transaction as an array
+     * @return array Transfer transaction as an array or FALSE on failure
      */
     public function txTransfer( $recipient, $amount, $asset = null, $options = null )
     {
@@ -1331,7 +1331,7 @@ class WavesKit
      * @param  int          $amount     Amount to lease
      * @param  array|null   $options    Transaction options as an array (default: null)
      *
-     * @return array Lease transaction as an array
+     * @return array Lease transaction as an array or FALSE on failure
      */
     public function txLease( $recipient, $amount, $options = null )
     {
@@ -1353,7 +1353,7 @@ class WavesKit
      * @param  string       $leaseId    Lease transaction id to cancel
      * @param  array|null   $options    Transaction options as an array (default: null)
      *
-     * @return array Lease cancel transaction as an array
+     * @return array Lease cancel transaction as an array or FALSE on failure
      */
     public function txLeaseCancel( $leaseId, $options = null )
     {
@@ -1444,7 +1444,7 @@ class WavesKit
      * @param  array        $userData   Array of key value pairs
      * @param  array|null   $options    Transaction options as an array (default: null)
      *
-     * @return array|false Data transaction as an array
+     * @return array|false Data transaction as an array or FALSE on failure
      */
     public function txData( $userData, $options = null )
     {
@@ -1465,7 +1465,7 @@ class WavesKit
      * @param  string       $script     Script to set
      * @param  array|null   $options    Transaction options as an array (default: null)
      *
-     * @return array|false Address script transaction as an array
+     * @return array|false Address script transaction as an array or FALSE on failure
      */
     public function txAddressScript( $script, $options = null )
     {
@@ -1490,7 +1490,7 @@ class WavesKit
      * @param  int          minSponsoredAssetFee    Minimal sponsored asset fee
      * @param  array|null   $options                Transaction options as an array (default: null)
      *
-     * @return array|false Sponsorship transaction as an array
+     * @return array|false Sponsorship transaction as an array or FALSE on failure
      */
     public function txSponsorship( $asset, $minSponsoredAssetFee, $options = null )
     {
@@ -1513,7 +1513,7 @@ class WavesKit
      * @param  string       $script     Asset script
      * @param  array|null   $options    Transaction options as an array (default: null)
      *
-     * @return array|false Asset script transaction as an array
+     * @return array|false Asset script transaction as an array or FALSE on failure
      */
     public function txAssetScript( $asset, $script, $options = null )
     {
@@ -1533,11 +1533,61 @@ class WavesKit
         return $tx;
     }
 
+    /**
+     * Makes invoke script transaction as an array
+     *
+     * @param  string       $dappAddress    Address of dApp script
+     * @param  string       $function       Function to call
+     * @param  array|null   $args           Arguments as an array (default: null)
+     * @param  array|null   $payments       Payments as an array (default: null)
+     * @param  array|null   $options        Transaction options as an array (default: null)
+     *
+     * @return array|false Invoke script transaction as an array or FALSE on failure
+     */
+    public function txInvokeScript( $dappAddress, $function, $args = null, $payments = null, $options = null )
+    {
+        $tx = [];
+        $tx['type'] = 16;
+        $tx['version'] = 1;
+        $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
+        $tx['dApp'] = $this->recipientAddressOrAlias( $dappAddress );
+        if( isset( $function ) )
+        {
+            $tx['call']['function'] = $function;
+            $tx['call']['args'] = isset( $args ) ? $this->argsValuesToTxValues( $args ) : [];
+        }
+        $tx['payment'] = isset( $payments ) ? $payments : [];
+        if( isset( $options['feeAssetId'] ) ) $tx['feeAssetId'] = $options['feeAssetId'];
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 500000;
+        $tx['chainId'] = ord( $this->getChainId() );
+        return $tx;
+    }
+
     private function userDataToTxData( $userData )
     {
         $data = [];
         foreach( $userData as $key => $value )
-            $data[] = [ 'key' => $key, 'type' => gettype( $value ), 'value' => $value ];
+        {
+            if( is_array( $value ) )
+                $data[] = [ 'key' => $key, 'type' => 'binary', 'value' => $this->binToBase64Tx( $value[0] ) ];
+            else
+                $data[] = [ 'key' => $key, 'type' => gettype( $value ), 'value' => $value ];
+        }
+        return $data;
+    }
+
+    private function argsValuesToTxValues( $args )
+    {
+        $data = [];
+        foreach( $args as $value )
+        {
+            if( is_array( $value ) )
+                $data[] = [ 'type' => 'binary', 'value' => $this->binToBase64Tx( $value[0] ) ];
+            else
+                $data[] = [ 'type' => gettype( $value ), 'value' => $value ];
+        }
         return $data;
     }
 
@@ -1608,6 +1658,25 @@ class WavesKit
                 return $body . chr( 2 ) . pack( 'n', strlen( $value ) ) . $value;
             case 'string':
                 return $body . chr( 3 ) . pack( 'n', strlen( $value ) ) . $value;
+        }
+    }
+
+    private function getArgRecordBody( $rec )
+    {
+        $type = $rec['type'];
+        $value = $rec['value'];
+
+        switch( $type )
+        {
+            case 'integer':
+                return chr( 0 ) . pack( 'J', $value );
+            case 'binary':
+                $value = $this->base64TxToBin( $value );
+                return chr( 1 ) . pack( 'N', strlen( $value ) ) . $value;
+            case 'string':
+                return chr( 2 ) . pack( 'N', strlen( $value ) ) . $value;
+            case 'boolean':
+                return chr( ( $value === true || $value === 'true' ) ? 6 : 7 );
         }
     }
 
@@ -1845,6 +1914,37 @@ class WavesKit
                 $body .= pack( 'J', $tx['fee'] );
                 $body .= pack( 'J', $tx['timestamp'] );
                 $body .= isset( $script ) ? chr( 1 ) . pack( 'n', strlen( $script ) ) . $script : chr( 0 );
+                break;
+
+            case 16: // invoke script
+                $body .= chr( 16 );
+                $body .= chr( 1 );
+                $body .= $this->getChainId();
+                $body .= $this->base58Decode( $tx['senderPublicKey'] );
+                $body .= $this->base58Decode( $tx['dApp'] );
+                if( isset( $tx['call']['function'] ) )
+                {
+                    $body .= chr( 1 ) . chr( 9 ) . chr( 1 );
+                    $body .= pack( 'N', strlen( $tx['call']['function'] ) ) . $tx['call']['function'];
+                    $body .= pack( 'N', count( $tx['call']['args'] ) );
+                    foreach( $tx['call']['args'] as $rec )
+                        $body .= $this->getArgRecordBody( $rec );
+                }
+                else
+                {
+                    $body .= chr( 0 );
+                }
+                $body .= pack( 'n', count( $tx['payment'] ) );
+                $payments = '';
+                foreach( $tx['payment'] as $rec )
+                {
+                    $payments .= pack( 'J', $rec['amount'] );
+                    $payments .= isset( $rec['asset'] ) ? chr( 1 ) . $this->base58Decode( $rec['asset'] ) : chr( 0 );
+                }
+                $body .= pack( 'n', strlen( $payments ) ) . $payments;
+                $body .= pack( 'J', $tx['fee'] );
+                $body .= isset( $tx['feeAssetId'] ) ? chr( 1 ) . $this->base58Decode( $tx['feeAssetId'] ) : chr( 0 );
+                $body .= pack( 'J', $tx['timestamp'] );
                 break;
 
             default:

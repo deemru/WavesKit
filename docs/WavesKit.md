@@ -33,6 +33,7 @@
 |[getPrivateKey](#waveskitgetprivatekey)|Gets private key|
 |[getPublicKey](#waveskitgetpublickey)|Gets public Key|
 |[getSodium](#waveskitgetsodium)|Gets sodium option status|
+|[getStateChanges](#waveskitgetstatechanges)|Gets state changes of an invoke transaction by its id|
 |[getTransactionById](#waveskitgettransactionbyid)|Gets a transaction by its id|
 |[getTransactions](#waveskitgettransactions)|Gets transactions for an address|
 |[height](#waveskitheight)|Gets current blockchain height|
@@ -64,6 +65,7 @@
 |[txBroadcast](#waveskittxbroadcast)|Broadcasts a transaction|
 |[txBurn](#waveskittxburn)|Makes burn transaction as an array|
 |[txData](#waveskittxdata)|Makes data transaction as an array|
+|[txInvokeScript](#waveskittxinvokescript)|Makes invoke script transaction as an array|
 |[txIssue](#waveskittxissue)|Makes issue transaction as an array|
 |[txLease](#waveskittxlease)|Makes lease transaction as an array|
 |[txLeaseCancel](#waveskittxleasecancel)|Makes lease cancel transaction as an array|
@@ -803,6 +805,33 @@ Gets sodium option status
 <hr />
 
 
+### WavesKit::getStateChanges  
+
+**Description**
+
+```php
+public getStateChanges (string $id)
+```
+
+Gets state changes of an invoke transaction by its id 
+
+ 
+
+**Parameters**
+
+* `(string) $id`
+: Id of the invoke transaction  
+
+**Return Values**
+
+`array|false`
+
+> Invoke transaction with state changes as an array or FALSE on failure
+
+
+<hr />
+
+
 ### WavesKit::getTransactionById  
 
 **Description**
@@ -1499,7 +1528,7 @@ Makes address script transaction as an array
 
 `array|false`
 
-> Address script transaction as an array
+> Address script transaction as an array or FALSE on failure
 
 
 <hr />
@@ -1528,7 +1557,7 @@ Makes alias transaction as an array
 
 `array`
 
-> Alias transaction as an array
+> Alias transaction as an array or FALSE on failure
 
 
 <hr />
@@ -1559,7 +1588,7 @@ Makes asset script transaction as an array
 
 `array|false`
 
-> Asset script transaction as an array
+> Asset script transaction as an array or FALSE on failure
 
 
 <hr />
@@ -1644,7 +1673,7 @@ Makes burn transaction as an array
 
 `array`
 
-> Burn transaction as an array
+> Burn transaction as an array or FALSE on failure
 
 
 <hr />
@@ -1673,7 +1702,42 @@ Makes data transaction as an array
 
 `array|false`
 
-> Data transaction as an array
+> Data transaction as an array or FALSE on failure
+
+
+<hr />
+
+
+### WavesKit::txInvokeScript  
+
+**Description**
+
+```php
+public txInvokeScript (string $dappAddress, string $function, array|null $args, array|null $payments, array|null $options)
+```
+
+Makes invoke script transaction as an array 
+
+ 
+
+**Parameters**
+
+* `(string) $dappAddress`
+: Address of dApp script  
+* `(string) $function`
+: Function to call  
+* `(array|null) $args`
+: Arguments as an array (default: null)  
+* `(array|null) $payments`
+: Payments as an array (default: null)  
+* `(array|null) $options`
+: Transaction options as an array (default: null)  
+
+**Return Values**
+
+`array|false`
+
+> Invoke script transaction as an array or FALSE on failure
 
 
 <hr />
@@ -1712,7 +1776,7 @@ Makes issue transaction as an array
 
 `array`
 
-> Issue transaction as an array
+> Issue transaction as an array or FALSE on failure
 
 
 <hr />
@@ -1743,7 +1807,7 @@ Makes lease transaction as an array
 
 `array`
 
-> Lease transaction as an array
+> Lease transaction as an array or FALSE on failure
 
 
 <hr />
@@ -1772,7 +1836,7 @@ Makes lease cancel transaction as an array
 
 `array`
 
-> Lease cancel transaction as an array
+> Lease cancel transaction as an array or FALSE on failure
 
 
 <hr />
@@ -1964,7 +2028,7 @@ Makes reissue transaction as an array
 
 `array`
 
-> Reissue transaction as an array
+> Reissue transaction as an array or FALSE on failure
 
 
 <hr />
@@ -2024,7 +2088,7 @@ Makes sponsorship transaction as an array
 
 `array|false`
 
-> Sponsorship transaction as an array
+> Sponsorship transaction as an array or FALSE on failure
 
 
 <hr />
@@ -2057,7 +2121,7 @@ Makes transfer transaction as an array
 
 `array`
 
-> Transfer transaction as an array
+> Transfer transaction as an array or FALSE on failure
 
 
 <hr />
