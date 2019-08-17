@@ -1941,7 +1941,7 @@ class WavesKit
                     $payments .= pack( 'J', $rec['amount'] );
                     $payments .= isset( $rec['asset'] ) ? chr( 1 ) . $this->base58Decode( $rec['asset'] ) : chr( 0 );
                 }
-                $body .= pack( 'n', strlen( $payments ) ) . $payments;
+                $body .= strlen( $payments ) ? ( pack( 'n', strlen( $payments ) ) . $payments ) : '';
                 $body .= pack( 'J', $tx['fee'] );
                 $body .= isset( $tx['feeAssetId'] ) ? chr( 1 ) . $this->base58Decode( $tx['feeAssetId'] ) : chr( 0 );
                 $body .= pack( 'J', $tx['timestamp'] );
