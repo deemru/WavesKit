@@ -534,9 +534,9 @@ class WavesKit
         if( false === ( $curl = curl_init() ) )
             return false;
 
-        $timeout = defined( 'WK_CURL_TIMEOUT' ) ? WK_CURL_TIMEOUT : 5;
-        $options = [ CURLOPT_CONNECTTIMEOUT  => $timeout,
-                     CURLOPT_TIMEOUT         => $timeout,
+        $this->curlTimeout = defined( 'WK_CURL_TIMEOUT' ) ? WK_CURL_TIMEOUT : 5;
+        $options = [ CURLOPT_CONNECTTIMEOUT  => $this->curlTimeout,
+                     CURLOPT_TIMEOUT         => $this->curlTimeout,
                      CURLOPT_URL             => $address,
                      CURLOPT_CONNECT_ONLY    => true,
                      CURLOPT_CAINFO          => CaBundle::getBundledCaBundlePath() ];
@@ -702,13 +702,23 @@ class WavesKit
         $nodes = $this->nodes;
         $best = [];
         $n = count( $nodes );
-        for( $i = 0; $i < $n; $i++ )
+        for( $run = 1, $rerun = false;; $run++ )
         {
-            $node = $nodes[$i];
-            $this->setNodeAddress( $node, $this->cacheLifetime );
-            $tt = microtime( true );
-            $height = $this->height();
-            $best[$node] = $height + ( 1 - ( microtime( true ) - $tt ) / 10 );
+            for( $i = 0; $i < $n; $i++ )
+            {
+                $node = $nodes[$i];
+                $this->setNodeAddress( $node, $this->cacheLifetime );
+                $tt = microtime( true );
+                $height = $this->height();
+                $score = $height + ( 1 - ( microtime( true ) - $tt ) / ( $this->curlTimeout + 10 ) );
+                $best[$node] = $score;
+                if( isset( $lastHeight ) && abs( $height - $lastHeight ) === 1 )
+                    $rerun = true;
+                $lastHeight = $height;
+            }
+            if( !$rerun || $run == 2 )
+                break;
+            sleep( 1 );
         }
         arsort( $best );
         $best = array_keys( $best );
