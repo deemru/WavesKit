@@ -728,7 +728,7 @@ Gets main node address
 **Description**
 
 ```php
-public getPrivateKey (bool $raw, string|null $seed)
+public getPrivateKey (bool $raw, string|null $seed, string|null $prefix)
 ```
 
 Gets private key 
@@ -741,6 +741,8 @@ Gets private key
 : String format is binary or base58 (default: binary)  
 * `(string|null) $seed`
 : Seed string in binary format (default: null)  
+* `(string|null) $prefix`
+: Prefix string in binary format (default: "\0\0\0\0")  
 
 **Return Values**
 
@@ -1344,7 +1346,7 @@ Sets RSEED value (DANGEROUS)
 **Description**
 
 ```php
-public setSeed (string $seed, bool $raw)
+public setSeed (string $seed, bool $raw, string|null $prefix)
 ```
 
 Sets user seed string 
@@ -1357,6 +1359,8 @@ Sets user seed string
 : Seed string  
 * `(bool) $raw`
 : String format is binary or base58 (default: binary)  
+* `(string|null) $prefix`
+: Prefix string in binary format (default: "\0\0\0\0")  
 
 **Return Values**
 

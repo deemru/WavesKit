@@ -21,9 +21,9 @@ class WavesKit
      */
     public function __construct( $chainId = 'W', $logFunction = null )
     {
-        $this->wk = [ 'chainId' => $chainId ];
+        $this->chainId = $chainId;
         if( isset( $logFunction ) )
-            $this->wk['logFunction'] = $logFunction;
+            $this->logFunction = $logFunction;
     }
 
     /**
@@ -33,7 +33,7 @@ class WavesKit
      */
     public function getChainId()
     {
-        return $this->wk['chainId'];
+        return $this->chainId;
     }
 
     /**
@@ -44,15 +44,21 @@ class WavesKit
      *
      * @return void
      */
-    public function log( $level, $message )
+    public function log( $level, $message = null )
     {
-        if( isset( $this->wk['logFunction'] ) )
+        if( !isset( $message ) )
         {
-            if( is_callable( $this->wk['logFunction'] ) )
-                return $this->wk['logFunction']( $level, $message );
-            elseif( $this->wk['logFunction'] === false )
+            $message = $level;
+            $level = 'i';
+        }
+
+        if( isset( $this->logFunction ) )
+        {
+            if( is_callable( $this->logFunction ) )
+                return $this->logFunction( $level, $message );
+            elseif( $this->logFunction === false )
                 return;
-            elseif( is_array( $this->wk['logFunction'] ) && !in_array( $level, $this->wk['logFunction'], true ) )
+            elseif( is_array( $this->logFunction ) && !in_array( $level, $this->logFunction, true ) )
                 return;
         }
 
@@ -74,7 +80,13 @@ class WavesKit
             case 's': $log .= 'SUCCESS: '; break;
             default:  $log .= 'UNKNOWN: '; break;
         }
-        echo $log . $message . PHP_EOL;
+
+        $log .= $message;
+        echo $log . PHP_EOL;
+        $this->lastLog = $log;
+
+        if( $level === 'e' )
+            error_log( $log );
     }
 
     /**
@@ -181,10 +193,10 @@ class WavesKit
         if( $this->getSodium() )
             return $this->sign_sodium( $data, $key );
 
-        if( isset( $this->wk['rseed'] ) )
+        if( isset( $this->rseed ) )
         {
-            $rseed = $this->wk['rseed'];
-            unset( $this->wk['rseed'] );
+            $rseed = $this->rseed;
+            unset( $this->rseed );
             return $this->sign_rseed( $data, $rseed, $key );
         }
 
@@ -269,7 +281,7 @@ class WavesKit
         if( $data === false || strlen( $data ) !== 26 )
             return false;
 
-        if( $data[0] !== chr( 1 ) || $data[1] !== $this->wk['chainId'] )
+        if( $data[0] !== chr( 1 ) || $data[1] !== $this->chainId )
             return false;
 
         $xsum = $this->secureHash( substr( $data, 0, 22 ) );
@@ -283,29 +295,29 @@ class WavesKit
     {
         if( $full )
         {
-            unset( $this->wk['seed'] );
-            unset( $this->wk['privateKey'] );
-            unset( $this->wk['b58_privateKey'] );
+            unset( $this->privateKey );
+            unset( $this->privateKey58 );
         }
 
-        unset( $this->wk['publicKey'] );
-        unset( $this->wk['b58_publicKey'] );
-        unset( $this->wk['address'] );
-        unset( $this->wk['b58_address'] );
+        unset( $this->publicKey );
+        unset( $this->publicKey58 );
+        unset( $this->address );
+        unset( $this->address58 );
     }
 
     /**
      * Sets user seed string
      *
-     * @param  string   $seed   Seed string
-     * @param  bool     $raw    String format is binary or base58 (default: binary)
+     * @param  string      $seed   Seed string
+     * @param  bool        $raw    String format is binary or base58 (default: binary)
+     * @param  string|null $prefix Prefix string in binary format (default: "\0\0\0\0")
      *
      * @return void
      */
-    public function setSeed( $seed, $raw = true )
+    public function setSeed( $seed, $raw = true, $prefix = "\0\0\0\0" )
     {
         $this->cleanup();
-        $this->getPrivateKey( true, $raw ? $seed : $this->base58Decode( $seed ) );
+        $this->getPrivateKey( true, $raw ? $seed : $this->base58Decode( $seed ), $prefix );
     }
 
     /**
@@ -319,7 +331,7 @@ class WavesKit
     public function setPrivateKey( $privateKey, $raw = false )
     {
         $this->cleanup();
-        $this->wk['privateKey'] = $raw ? $privateKey : $this->base58Decode( $privateKey );
+        $this->privateKey = $raw ? $privateKey : $this->base58Decode( $privateKey );
     }
 
     /**
@@ -327,28 +339,29 @@ class WavesKit
      *
      * @param  bool         $raw    String format is binary or base58 (default: binary)
      * @param  string|null  $seed   Seed string in binary format (default: null)
+     * @param  string|null  $prefix Prefix string in binary format (default: "\0\0\0\0")
      *
      * @return string Private key
      */
-    public function getPrivateKey( $raw = true, $seed = null )
+    public function getPrivateKey( $raw = true, $seed = null, $prefix = "\0\0\0\0" )
     {
-        if( !isset( $this->wk['privateKey'] ) )
+        if( !isset( $this->privateKey ) )
         {
             if( !isset( $seed ) )
                 return false;
-            $temp = chr( 0 ) . chr( 0 ) . chr( 0 ) . chr( 0 ) . $seed;
+            $temp = $prefix . $seed;
             $temp = $this->secureHash( $temp );
             $temp = $this->sha256( $temp );
-            $this->wk['privateKey'] = $temp;
+            $this->privateKey = $temp;
         }
 
         if( $raw )
-            return $this->wk['privateKey'];
+            return $this->privateKey;
 
-        if( !isset( $this->wk['b58_privateKey'] ) )
-            $this->wk['b58_privateKey'] = $this->base58Encode( $this->wk['privateKey'] );
+        if( !isset( $this->privateKey58 ) )
+            $this->privateKey58 = $this->base58Encode( $this->privateKey );
 
-        return $this->wk['b58_privateKey'];
+        return $this->privateKey58;
     }
 
     /**
@@ -362,7 +375,7 @@ class WavesKit
     public function setPublicKey( $publicKey, $raw = false )
     {
         $this->cleanup();
-        $this->wk['publicKey'] = $raw ? $publicKey : $this->base58Decode( $publicKey );
+        $this->publicKey = $raw ? $publicKey : $this->base58Decode( $publicKey );
     }
 
     /**
@@ -374,7 +387,7 @@ class WavesKit
      */
     public function getPublicKey( $raw = false )
     {
-        if( !isset( $this->wk['publicKey'] ) )
+        if( !isset( $this->publicKey ) )
         {
             $temp = $this->getPrivateKey();
             if( $temp === false || strlen( $temp ) !== 32 )
@@ -382,16 +395,16 @@ class WavesKit
             if( $this->getSodium() )
                 $temp = $this->c25519()->getSodiumPrivateKeyFromPrivateKey( $temp );
             $temp = $this->c25519()->getPublicKeyFromPrivateKey( $temp, $this->getLastBitFlip() );
-            $this->wk['publicKey'] = $temp;
+            $this->publicKey = $temp;
         }
 
         if( $raw )
-            return $this->wk['publicKey'];
+            return $this->publicKey;
 
-        if( !isset( $this->wk['b58_publicKey'] ) )
-            $this->wk['b58_publicKey'] = $this->base58Encode( $this->wk['publicKey'] );
+        if( !isset( $this->publicKey58 ) )
+            $this->publicKey58 = $this->base58Encode( $this->publicKey );
 
-        return $this->wk['b58_publicKey'];
+        return $this->publicKey58;
     }
 
     /**
@@ -408,7 +421,7 @@ class WavesKit
         if( !$this->isAddressValid( $address, $raw ) )
             return;
 
-        $this->wk['address'] = $raw ? $address : $this->base58Decode( $address );
+        $this->address = $raw ? $address : $this->base58Decode( $address );
     }
 
     /**
@@ -420,24 +433,24 @@ class WavesKit
      */
     public function getAddress( $raw = false )
     {
-        if( !isset( $this->wk['address'] ) )
+        if( !isset( $this->address ) )
         {
             $temp = $this->getPublicKey( true );
             if( $temp === false || strlen( $temp ) !== 32 )
                 return false;
             $temp = $this->secureHash( $temp );
-            $temp = chr( 1 ) . $this->wk['chainId'] . substr( $temp, 0, 20 );
+            $temp = chr( 1 ) . $this->chainId . substr( $temp, 0, 20 );
             $temp .= substr( $this->secureHash( $temp ), 0, 4 );
-            $this->wk['address'] = $temp;
+            $this->address = $temp;
         }
 
         if( $raw )
-            return $this->wk['address'];
+            return $this->address;
 
-        if( !isset( $this->wk['b58_address'] ) )
-            $this->wk['b58_address'] = $this->base58Encode( $this->wk['address'] );
+        if( !isset( $this->address58 ) )
+            $this->address58 = $this->base58Encode( $this->address );
 
-        return $this->wk['b58_address'];
+        return $this->address58;
     }
 
     /**
@@ -451,9 +464,9 @@ class WavesKit
     {
         $this->cleanup();
         if( $enabled )
-            $this->wk['sodium'] = $enabled;
+            $this->sodium = $enabled;
         else
-            unset( $this->wk['sodium'] );
+            unset( $this->sodium );
     }
 
     /**
@@ -463,7 +476,7 @@ class WavesKit
      */
     public function getSodium()
     {
-        return isset( $this->wk['sodium'] );
+        return isset( $this->sodium );
     }
 
     /**
@@ -477,9 +490,9 @@ class WavesKit
     {
         $this->cleanup( false );
         if( $enabled )
-            $this->wk['lastbitflip'] = $enabled;
+            $this->lastbitflip = $enabled;
         else
-            unset( $this->wk['lastbitflip'] );
+            unset( $this->lastbitflip );
     }
 
     /**
@@ -489,7 +502,7 @@ class WavesKit
      */
     public function getLastBitFlip()
     {
-        return isset( $this->wk['lastbitflip'] );
+        return isset( $this->lastbitflip );
     }
 
     /**
@@ -501,7 +514,7 @@ class WavesKit
      */
     public function setRSEED( $rseed )
     {
-        $this->wk['rseed'] = $rseed;
+        $this->rseed = $rseed;
     }
 
     /**
@@ -598,7 +611,7 @@ class WavesKit
     {
         if( !isset( $this->nodes[0] ) || $this->nodes[0] === false )
         {
-            switch( $this->wk['chainId'] )
+            switch( $this->chainId )
             {
                 case 'W':
                     $this->setNodeAddress( 'https://nodes.wavesplatform.com' );
@@ -2003,7 +2016,7 @@ class WavesKit
      */
     public function setCryptash( $secret, $iv = 4, $mac = 4, $hash = 'sha256' )
     {
-        $this->wk['cryptash'] = new Cryptash( $secret, $iv, $mac, $hash );
+        $this->cryptash = new Cryptash( $secret, $iv, $mac, $hash );
     }
 
     /**
@@ -2015,10 +2028,10 @@ class WavesKit
      */
     public function encryptash( $data )
     {
-        if( !isset( $this->wk['cryptash'] ) )
+        if( !isset( $this->cryptash ) )
             return false;
 
-        return $this->wk['cryptash']->encryptash( $data );
+        return $this->cryptash->encryptash( $data );
     }
 
     /**
@@ -2030,16 +2043,16 @@ class WavesKit
      */
     public function decryptash( $data )
     {
-        if( !isset( $this->wk['cryptash'] ) )
+        if( !isset( $this->cryptash ) )
             return false;
 
-        return $this->wk['cryptash']->decryptash( $data );
+        return $this->cryptash->decryptash( $data );
     }
 
     private function getPairsDatabase()
     {
-        if( isset( $this->wk['pairs'] ) )
-            return $this->wk['pairs'];
+        if( isset( $this->pairs ) )
+            return $this->pairs;
         return false;
     }
 
@@ -2052,8 +2065,8 @@ class WavesKit
      */
     public function setPairsDatabase( $path )
     {
-        $this->wk['pairs']['transactions'] = new Pairs( $path, 'savedTransactions', true, 'TEXT UNIQUE|INTEGER|0|0' );
-        $this->wk['pairs']['signatures'] = new Pairs( $this->wk['pairs']['transactions']->db(), 'savedSignatures', true, 'INTEGER PRIMARY KEY|TEXT|0|0' );
+        $this->pairs['transactions'] = new Pairs( $path, 'savedTransactions', true, 'TEXT UNIQUE|INTEGER|0|0' );
+        $this->pairs['signatures'] = new Pairs( $this->pairs['transactions']->db(), 'savedSignatures', true, 'INTEGER PRIMARY KEY|TEXT|0|0' );
     }
 
     private function watchTransactions( $transactionPairs, $signaturePairs, &$newTransactions, &$newSignatures, $confirmations, $depth )
