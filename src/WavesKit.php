@@ -1265,7 +1265,7 @@ class WavesKit
         $tx['decimals'] = $decimals;
         $tx['reissuable'] = $reissuable;
         if( isset( $script ) || isset( $options['script'] ) )
-            $tx['script'] = isset( $options['script'] ) ? $options['script'] : isset( $script ) ? 'base64:' . $script : null;
+            $tx['script'] = isset( $options['script'] ) ? $options['script'] : ( isset( $script ) ? 'base64:' . $script : null );
         return $tx;
     }
 
@@ -1501,7 +1501,7 @@ class WavesKit
         $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
         $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
-        $tx['script'] = isset( $options['script'] ) ? $options['script'] : isset( $script ) ? 'base64:' . $script : null;
+        $tx['script'] = isset( $options['script'] ) ? $options['script'] : ( isset( $script ) ? 'base64:' . $script : null );
         $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 1000000;
         return $tx;
     }
@@ -1549,7 +1549,7 @@ class WavesKit
         $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
         $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
         $tx['assetId'] = $asset;
-        $tx['script'] = isset( $options['script'] ) ? $options['script'] : isset( $script ) ? 'base64:' . $script : null;
+        $tx['script'] = isset( $options['script'] ) ? $options['script'] : ( isset( $script ) ? 'base64:' . $script : null );
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
         $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000000;
         $tx['chainId'] = ord( $this->getChainId() );
