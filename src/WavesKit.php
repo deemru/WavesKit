@@ -813,7 +813,7 @@ class WavesKit
         return curl_setopt_array( $curl, $options );
     }
 
-    private function fetchResult( $data, $host, $curl, $ignoreCodes = null )
+    private function fetchResult( $data, $host, $curl, $ignoreCodes )
     {
         if( 0 !== ( $errno = curl_errno( $curl ) ) || ( $code = curl_getinfo( $curl, CURLINFO_HTTP_CODE ) ) !== 200 || false === $data )
         {
@@ -846,7 +846,7 @@ class WavesKit
         if( !$this->fetchSetup( $host, $curl, $url, $post, $data, $headers ) )
             return false;
 
-        return $this->fetchResult( curl_exec( $curl ), $host, $curl );
+        return $this->fetchResult( curl_exec( $curl ), $host, $curl, ignoreCodes );
     }
 
     private function setNodeCache( $key, $data )
