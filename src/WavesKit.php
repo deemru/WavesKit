@@ -578,7 +578,7 @@ class WavesKit
     /**
      * Sets node address with cache lifetime and backup node addresses
      *
-     * @param  string       $nodeAddress    Main node address to work with
+     * @param  string|array $nodeAddress    Main node address to work with
      * @param  int          $cacheLifetime  Cache lifetime in seconds (default: 1)
      * @param  array|null   $backupNodes    Backup node addresses to fallback
      *
@@ -586,7 +586,7 @@ class WavesKit
      */
     public function setNodeAddress( $nodeAddress, $cacheLifetime = 1, $backupNodes = null )
     {
-        $this->nodes = [ $nodeAddress ];
+        $this->nodes = is_array( $nodeAddress ) ? $nodeAddress : [ $nodeAddress ];
         if( isset( $backupNodes ) )
             $this->nodes = array_merge( $this->nodes, $backupNodes );
 
@@ -656,17 +656,18 @@ class WavesKit
                 $curl = $this->curls[$i];
             else
             {
-                $curl = $this->curl( $node );
+                $curl = $this->fetchInit( $node );
                 if( $curl === false )
                     continue;
 
                 $this->curls[$i] = $curl;
             }
 
-            $fetch = $this->fetchCurl( $node, $curl, $url, $post, $data, $ignoreCodes, $headers );
+            $fetch = $this->fetchSingle( $node, $curl, $url, $post, $data, $ignoreCodes, $headers );
 
             if( false !== $fetch )
             {
+                $fetch = $fetch[0];
                 if( !$post )
                     $this->setNodeCache( $url, $fetch );
 
@@ -689,6 +690,76 @@ class WavesKit
         }
 
         return false;
+    }
+
+    /**
+     * Fetches GET or POST responses from all nodes
+     *
+     * @param  string       $url            URL of request
+     * @param  bool         $post           POST or GET (default: GET)
+     * @param  string|null  $data           Data for POST (default: null)
+     * @param  array|null   $ignoreCodes    Array of ignored HTTP codes (default: null)
+     * @param  array|null   $headers        Optional HTTP headers (default: null)
+     *
+     * @return array|false Returns data responses from all nodes or FALSE on failure
+     */
+    public function fetchMulti( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
+    {
+        $n = count( $this->nodes );
+        for( $i = 0; $i < $n; $i++ )
+        {
+            $node = $this->nodes[$i];
+            if( isset( $this->curls[$i] ) )
+                $curl = $this->curls[$i];
+            else
+            {
+                $curl = $this->fetchInit( $node );
+                if( $curl === false )
+                    continue;
+
+                $this->curls[$i] = $curl;
+            }
+
+            if( !$this->fetchSetup( $node, $curl, $url, $post, $data, $headers ) )
+                return false;
+        }
+
+        $multiCurl = curl_multi_init();
+        for( $i = 0; $i < $n && isset( $this->curls[$i] ); $i++ )
+            curl_multi_add_handle( $multiCurl, $this->curls[$i] );
+
+        $active = 0;
+        for( ;; )
+        {
+            if( CURLM_OK != curl_multi_exec( $multiCurl, $active ) )
+                break;
+
+            if( $active === 0 )
+                break;
+
+            curl_multi_select( $multiCurl );
+        }
+
+        $multiData = [];
+        for( $i = 0; $i < $n; $i++ )
+        {
+            if( !isset( $this->curls[$i] ) )
+            {
+                $multiData[$this->nodes[$i]] = false;
+                continue;
+            }
+
+            $curl = $this->curls[$i];
+            $host = $this->nodes[$i];
+            $data = curl_multi_getcontent( $curl );
+            $data = $this->fetchResult( $data, $host, $curl, $ignoreCodes );
+            $multiData[$this->nodes[$i]] = $data;
+
+            curl_multi_remove_handle( $multiCurl, $curl );
+        }
+
+        curl_multi_close( $multiCurl );
+        return $multiData;
     }
 
     /**
@@ -725,11 +796,8 @@ class WavesKit
         $this->setNodeAddress( $best[0], $this->cacheLifetime, array_slice( $best, 1 ) );
     }
 
-    private function fetchCurl( $host, $curl, $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
+    private function fetchSetup( $host, $curl, $url, $post, $data, $headers )
     {
-        if( !$post && null !== ( $data = $this->getNodeCache( $url ) ) )
-            return $data;
-
         $options = [ CURLOPT_URL => $host . $url, CURLOPT_POST => $post ];
 
         if( isset( $headers ) )
@@ -742,13 +810,12 @@ class WavesKit
                 $options[CURLOPT_HTTPHEADER] = [ 'Content-Type: application/json', 'Accept: application/json' ];
         }
 
-        if( false === curl_setopt_array( $curl, $options ) )
-            return false;
+        return curl_setopt_array( $curl, $options );
+    }
 
-        $data = curl_exec( $curl );
-        $code = curl_getinfo( $curl, CURLINFO_HTTP_CODE );
-
-        if( 0 !== ( $errno = curl_errno( $curl ) ) || $code !== 200 || false === $data )
+    private function fetchResult( $data, $host, $curl, $ignoreCodes = null )
+    {
+        if( 0 !== ( $errno = curl_errno( $curl ) ) || ( $code = curl_getinfo( $curl, CURLINFO_HTTP_CODE ) ) !== 200 || false === $data )
         {
             if( !isset( $ignoreCodes ) || $errno !== 0 || !in_array( $code, $ignoreCodes ) )
             {
@@ -768,7 +835,18 @@ class WavesKit
             $data = false;
         }
 
-        return $data;
+        return [ $data, curl_getinfo( $curl, CURLINFO_TOTAL_TIME ) ];
+    }
+
+    private function fetchSingle( $host, $curl, $url, $post, $data, $ignoreCodes, $headers )
+    {
+        if( !$post && null !== ( $data = $this->getNodeCache( $url ) ) )
+            return $data;
+
+        if( !$this->fetchSetup( $host, $curl, $url, $post, $data, $headers ) )
+            return false;
+
+        return $this->fetchResult( curl_exec( $curl ), $host, $curl );
     }
 
     private function setNodeCache( $key, $data )

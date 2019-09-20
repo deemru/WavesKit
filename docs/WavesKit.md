@@ -22,6 +22,7 @@
 |[encryptash](#waveskitencryptash)|Encrypts data with cryptash parameters|
 |[ensure](#waveskitensure)|Ensures a transaction confirmed and reached required confirmations|
 |[fetch](#waveskitfetch)|Fetches GET or POST response|
+|[fetchMulti](#waveskitfetchmulti)|Fetches GET or POST response from all nodes|
 |[getAddress](#waveskitgetaddress)|Gets address|
 |[getAddressByAlias](#waveskitgetaddressbyalias)|Gets an address by an alias|
 |[getAddressScript](#waveskitgetaddressscript)|Gets a script associated with an address|
@@ -499,6 +500,41 @@ Fetches GET or POST response
 `string|false`
 
 > Returns response data or FALSE on failure
+
+
+<hr />
+
+
+### WavesKit::fetchMulti  
+
+**Description**
+
+```php
+public fetchMulti (string $url, bool $post, string|null $data, array|null $ignoreCodes, array|null $headers)
+```
+
+Fetches GET or POST responses from all nodes 
+
+ 
+
+**Parameters**
+
+* `(string) $url`
+: URL of request  
+* `(bool) $post`
+: POST or GET (default: GET)  
+* `(string|null) $data`
+: Data for POST (default: null)  
+* `(array|null) $ignoreCodes`
+: Array of ignored HTTP codes (default: null)  
+* `(array|null) $headers`
+: Optional HTTP headers (default: null)  
+
+**Return Values**
+
+`array|false`
+
+> Returns data responses from all nodes or FALSE on failure
 
 
 <hr />
@@ -1203,7 +1239,7 @@ Sets last bit flip option
 **Description**
 
 ```php
-public setNodeAddress (string $nodeAddress, int $cacheLifetime, array|null $backupNodes)
+public setNodeAddress (string|array $nodeAddress, int $cacheLifetime, array|null $backupNodes)
 ```
 
 Sets node address with cache lifetime and backup node addresses 
@@ -1212,7 +1248,7 @@ Sets node address with cache lifetime and backup node addresses
 
 **Parameters**
 
-* `(string) $nodeAddress`
+* `(string|array) $nodeAddress`
 : Main node address to work with  
 * `(int) $cacheLifetime`
 : Cache lifetime in seconds (default: 1)  
