@@ -841,7 +841,7 @@ class WavesKit
     private function fetchSingle( $host, $curl, $url, $post, $data, $ignoreCodes, $headers )
     {
         if( !$post && null !== ( $data = $this->getNodeCache( $url ) ) )
-            return $data;
+            return [ $data, 0 ];
 
         if( !$this->fetchSetup( $host, $curl, $url, $post, $data, $headers ) )
             return false;
