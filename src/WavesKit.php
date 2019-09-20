@@ -529,7 +529,7 @@ class WavesKit
         return json_decode( $json, true, 512, JSON_BIGINT_AS_STRING );
     }
 
-    private function curl( $address )
+    private function fetchInit( $address )
     {
         if( false === ( $curl = curl_init() ) )
             return false;
