@@ -846,7 +846,7 @@ class WavesKit
         if( !$this->fetchSetup( $host, $curl, $url, $post, $data, $headers ) )
             return false;
 
-        return $this->fetchResult( curl_exec( $curl ), $host, $curl, ignoreCodes );
+        return $this->fetchResult( curl_exec( $curl ), $host, $curl, $ignoreCodes );
     }
 
     private function setNodeCache( $key, $data )
