@@ -815,7 +815,8 @@ class WavesKit
 
     private function fetchResult( $data, $host, $curl, $ignoreCodes )
     {
-        if( 0 !== ( $errno = curl_errno( $curl ) ) || ( $code = curl_getinfo( $curl, CURLINFO_HTTP_CODE ) ) !== 200 || false === $data )
+        $code = curl_getinfo( $curl, CURLINFO_HTTP_CODE );
+        if( 0 !== ( $errno = curl_errno( $curl ) ) || $code !== 200 || false === $data )
         {
             if( !isset( $ignoreCodes ) || $errno !== 0 || !in_array( $code, $ignoreCodes ) )
             {
