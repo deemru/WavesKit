@@ -82,11 +82,11 @@ class WavesKit
         }
 
         $log .= $message;
-        echo $log . PHP_EOL;
-        $this->lastLog = $log;
-
         if( $level === 'e' )
             error_log( $log );
+        else
+            echo $log . PHP_EOL;
+        $this->lastLog = $log;
     }
 
     /**
@@ -638,11 +638,13 @@ class WavesKit
      */
     public function fetch( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
     {
+        if( !$post && null !== ( $fetch = $this->getNodeCache( $url ) ) )
+            return $fetch;
+
         $this->setDefaultNode();
 
         if( isset( $this->curlSetBestOnError ) && $this->curlSetBestOnError > 1 )
         {
-            $this->curlSetBestOnError = 0;
             $this->setBestNode();
             $this->curlSetBestOnError = 1;
             $this->log( 'i', 'curlSetBestOnError = ' . $this->getNodeAddress() );
@@ -663,11 +665,11 @@ class WavesKit
                 $this->curls[$i] = $curl;
             }
 
-            $fetch = $this->fetchSingle( $node, $curl, $url, $post, $data, $ignoreCodes, $headers );
+            $fetch = $this->fetchSingle( $node, $curl, $url, $post, $data, $ignoreCodes, $headers )[0];
 
             if( false !== $fetch )
             {
-                $fetch = $fetch[0];
+                $fetch = $fetch;
                 if( !$post )
                     $this->setNodeCache( $url, $fetch );
 
@@ -775,15 +777,17 @@ class WavesKit
         $n = count( $nodes );
         for( $run = 1, $rerun = false;; $run++ )
         {
+            $lastHeight = 0;
             for( $i = 0; $i < $n; $i++ )
             {
                 $node = $nodes[$i];
                 $this->setNodeAddress( $node, $this->cacheLifetime );
                 $tt = microtime( true );
+                $this->curlSetBestOnError = 0;
                 $height = $this->height();
                 $score = $height + ( 1 - ( microtime( true ) - $tt ) / ( $this->curlTimeout + 10 ) );
                 $best[$node] = $score;
-                if( isset( $lastHeight ) && abs( $height - $lastHeight ) === 1 )
+                if( abs( $height - $lastHeight ) === 1 )
                     $rerun = true;
                 $lastHeight = $height;
             }
@@ -792,8 +796,7 @@ class WavesKit
             sleep( 1 );
         }
         arsort( $best );
-        $best = array_keys( $best );
-        $this->setNodeAddress( $best[0], $this->cacheLifetime, array_slice( $best, 1 ) );
+        $this->setNodeAddress( array_keys( $best ), $this->cacheLifetime );
     }
 
     private function fetchSetup( $host, $curl, $url, $post, $data, $headers )
@@ -841,11 +844,8 @@ class WavesKit
 
     private function fetchSingle( $host, $curl, $url, $post, $data, $ignoreCodes, $headers )
     {
-        if( !$post && null !== ( $data = $this->getNodeCache( $url ) ) )
-            return [ $data, 0 ];
-
         if( !$this->fetchSetup( $host, $curl, $url, $post, $data, $headers ) )
-            return false;
+            return [ false, 0 ];
 
         return $this->fetchResult( curl_exec( $curl ), $host, $curl, $ignoreCodes );
     }
@@ -1119,7 +1119,7 @@ class WavesKit
         if( false === ( $json = $this->fetch( "/debug/stateChanges/info/$id", false, null, [ 404 ] ) ) )
             return false;
 
-        if( null === ( $json = $this->json_decode( $json ) ) || !isset( $json['stateChanges'] ) )
+        if( null === ( $json = $this->json_decode( $json ) ) || !isset( $json['stateChanges'] ) || $json['id'] !== $id )
             return false;
 
         return $json;
