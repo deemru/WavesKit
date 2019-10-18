@@ -550,7 +550,7 @@ class WavesKit
         if( false === curl_setopt_array( $curl, $options ) )
             return false;
 
-        if( !curl_exec( $curl ) && 0 !== ( $errno = curl_errno( $curl ) ) )
+        if( !defined( 'WK_CURL_SKIP_CONNECT' ) && !curl_exec( $curl ) && 0 !== ( $errno = curl_errno( $curl ) ) )
         {
             $this->log( 'e', "curl error $errno: " . curl_error( $curl ) );
             curl_close( $curl );
