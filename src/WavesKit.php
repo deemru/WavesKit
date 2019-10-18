@@ -938,8 +938,8 @@ class WavesKit
      */
     public function getBlockAt( $height, $headers = false )
     {
-        $headers = $headers ? '/headers' : '';
-        if( false === ( $json = $this->fetch( "/blocks$headers/at/$height" ) ) )
+        $fetch = '/blocks' . ( $headers ? '/headers' : '' ) . ( $height ? ( '/at/' . $height ) : '/last' );
+        if( false === ( $json = $this->fetch( $fetch ) ) )
             return false;
 
         if( null === ( $json = $this->json_decode( $json ) ) )
