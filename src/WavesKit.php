@@ -648,7 +648,7 @@ class WavesKit
         {
             $this->setBestNode();
             $this->curlSetBestOnError = 1;
-            $this->log( 'i', 'curlSetBestOnError = ' . $this->getNodeAddress() );
+            $this->log( 'i', 'setBestNode = ' . $this->getNodeAddress() );
         }
 
         $n = count( $this->nodes );

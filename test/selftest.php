@@ -269,7 +269,6 @@ $t->pretest( 'private faucet ready' );
 $t->pretest( 'new tester' );
 {
     $wk = new WavesKit( $wkFaucet->getChainId() );
-    $wk->setNodeAddress( $wkFaucet->nodes );
     $wk->setSeed( $wk->randomSeed() );
     $address = $wk->getAddress();
     $balance = $wk->balance();
