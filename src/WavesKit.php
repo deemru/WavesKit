@@ -617,7 +617,8 @@ class WavesKit
                     $this->setNodeAddress( 'https://nodes.wavesplatform.com' );
                     break;
                 case 'T':
-                    $this->setNodeAddress( 'https://testnode2.wavesnodes.com' );
+                    $this->setNodeAddress( [ 'https://testnode1.wavesnodes.com', 'https://testnode2.wavesnodes.com',
+                                             'https://testnode3.wavesnodes.com', 'https://testnode4.wavesnodes.com' ] );
                     break;
                 default:
                     break;
@@ -638,10 +639,10 @@ class WavesKit
      */
     public function fetch( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
     {
+        $this->setDefaultNode();
+
         if( !$post && null !== ( $fetch = $this->getNodeCache( $url ) ) )
             return $fetch;
-
-        $this->setDefaultNode();
 
         if( isset( $this->curlSetBestOnError ) && $this->curlSetBestOnError > 1 )
         {
