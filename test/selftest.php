@@ -247,15 +247,16 @@ $t->pretest( 'private faucet ready' );
 {
     $wkFaucet = new WavesKit( 'T' );
     $wkFaucet->setNodeAddress( $nodes[0], 1, array_slice( $nodes, 1 ) );
-    $wkFaucet->log( 'i', "next ERROR may be expected" );
+    $wkFaucet->logFunction = [ 'd', 'w', 'i', 's' ];
     $wkFaucet->setBestNode();
     $wkFaucet->log( 'i', 'best node = ' . $wkFaucet->getNodeAddress() );
     define( 'WK_CURL_SETBESTONERROR', true );
-    $wkFaucet->setNodeAddress( $nodes[0], 1, array_slice( $nodes, 1 ) );
-    $wkFaucet->log( 'i', "next ERROR may be expected" );
+    $wkFaucet->setNodeAddress( $nodes, 0 );
     $wkFaucet->height();
-    $wkFaucet->log( 'i', "next ERROR may be expected" );
     $wkFaucet->height();
+    unset( $wkFaucet->logFunction );
+    $wkFaucet->height();
+    $wkFaucet->setNodeAddress( $wkFaucet->nodes );
     $wkFaucet->setSeed( getenv( 'WAVESKIT_SEED' ) );
     $address = $wkFaucet->getAddress();
     $balance = $wkFaucet->balance();
@@ -267,7 +268,7 @@ $t->pretest( 'private faucet ready' );
 $t->pretest( 'new tester' );
 {
     $wk = new WavesKit( $wkFaucet->getChainId() );
-    $wk->setNodeAddress( $wkFaucet->getNodeAddress() );
+    $wk->setNodeAddress( $wkFaucet->nodes );
     $wk->setSeed( $wk->randomSeed() );
     $address = $wk->getAddress();
     $balance = $wk->balance();
@@ -330,8 +331,9 @@ $t->pretest( "txReissue (reissue = false)" );
 {
     $tx = $wk->txReissue( $tokenId, $tokenQuantity, false );
     $tx = $wk->txSign( $tx );
-    $wk->log( 'i', "next ERROR may be expected" );
+    $wk->logFunction = [ 'd', 'w', 'i', 's' ];
     $tx = $wk->txBroadcast( $tx );
+    unset( $wk->logFunction );
 
     $t->test( $tx === false );
 }
@@ -386,8 +388,9 @@ $t->pretest( "txLease + txLeaseCancel" );
 
     $tx = $wk->txTransfer( $wkFaucet->getAddress(), $leaseAmount );
     $tx = $wk->txSign( $tx );
-    $wk->log( 'i', "next ERROR may be expected" );
+    $wk->logFunction = [ 'd', 'w', 'i', 's' ];
     $tx = $wk->txBroadcast( $tx );
+    unset( $wk->logFunction );
 
     $leasedTransfer = $tx;
 
@@ -537,8 +540,9 @@ $t->pretest( "txIssue + txAssetScript (s$tokenName)" );
 
     $tx = $wk->txReissue( $tokenId, $tokenQuantity, false );
     $tx = $wk->txSign( $tx );
-    $wk->log( 'i', "next ERROR may be expected" );
+    $wk->logFunction = [ 'd', 'w', 'i', 's' ];
     $tx = $wk->txBroadcast( $tx );
+    unset( $wk->logFunction );
 
     $t->test( $balanceOK && $tx === false );
 }
