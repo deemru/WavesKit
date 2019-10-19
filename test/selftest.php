@@ -246,6 +246,7 @@ $nodes =
 $t->pretest( 'private faucet ready' );
 {
     $wkFaucet = new WavesKit( 'T' );
+    $wkFaucet->height();
     $wkFaucet->setNodeAddress( $nodes[0], 1, array_slice( $nodes, 1 ) );
     $wkFaucet->logFunction = [ 'd', 'w', 'i', 's' ];
     $wkFaucet->setBestNode();
