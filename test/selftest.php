@@ -262,7 +262,7 @@ $t->pretest( 'private faucet ready' );
     $address = $wkFaucet->getAddress();
     $balance = $wkFaucet->balance();
     $balance = $balance[0]['balance'];
-    $t->test( $address === '3NCmJ4aPa743tupRPae7MaHJssaotosou9W' && $balance >= 1000000000 );
+    $t->test( $balance >= 10000000000 );
     $wkFaucet->log( 'i', "faucet = $address (" . number_format( $balance / 100000000, 8, '.', '' ) . ' Waves)' );
 }
 
