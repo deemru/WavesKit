@@ -2042,7 +2042,7 @@ class WavesKit
                 foreach( $tx['payment'] as $rec )
                 {
                     $payments .= pack( 'J', $rec['amount'] );
-                    $payments .= isset( $rec['asset'] ) ? chr( 1 ) . $this->base58Decode( $rec['asset'] ) : chr( 0 );
+                    $payments .= isset( $rec['assetId'] ) ? ( chr( 1 ) . $this->base58Decode( $rec['assetId'] ) ) : chr( 0 );
                 }
                 $body .= strlen( $payments ) ? ( pack( 'n', strlen( $payments ) ) . $payments ) : '';
                 $body .= pack( 'J', $tx['fee'] );
