@@ -708,6 +708,7 @@ class WavesKit
      */
     public function fetchMulti( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
     {
+        $t = microtime( true );
         $n = count( $this->nodes );
         for( $i = 0; $i < $n; $i++ )
         {
@@ -728,8 +729,9 @@ class WavesKit
         }
 
         $multiCurl = curl_multi_init();
-        for( $i = 0; $i < $n && isset( $this->curls[$i] ); $i++ )
-            curl_multi_add_handle( $multiCurl, $this->curls[$i] );
+        for( $i = 0; $i < $n; $i++ )
+            if( isset( $this->curls[$i] ) )
+                curl_multi_add_handle( $multiCurl, $this->curls[$i] );
 
         $active = 0;
         for( ;; )
@@ -748,7 +750,10 @@ class WavesKit
         {
             if( !isset( $this->curls[$i] ) )
             {
-                $multiData[$this->nodes[$i]] = false;
+                if( !isset( $timetotal ) )
+                    $timetotal = microtime( true ) - $t;
+
+                $multiData[$this->nodes[$i]] = [ false, $timetotal ];
                 continue;
             }
 
