@@ -1,6 +1,6 @@
 # WavesKit
 
-[![packagist](https://img.shields.io/packagist/v/deemru/waveskit.svg)](https://packagist.org/packages/deemru/waveskit) [![php-v](https://img.shields.io/packagist/php-v/deemru/waveskit.svg)](https://packagist.org/packages/deemru/waveskit)  [![travis](https://img.shields.io/travis/deemru/WavesKit.svg?label=travis)](https://travis-ci.org/deemru/WavesKit) [![codacy](https://img.shields.io/codacy/grade/5b22f904c9ba417cb278cb4efc58a7ce.svg?label=codacy)](https://app.codacy.com/project/deemru/WavesKit/dashboard) [![license](https://img.shields.io/packagist/l/deemru/WavesKit.svg)](https://packagist.org/packages/deemru/WavesKit)
+[![packagist](https://img.shields.io/packagist/v/deemru/waveskit.svg)](https://packagist.org/packages/deemru/waveskit) [![php-v](https://img.shields.io/packagist/php-v/deemru/waveskit.svg)](https://packagist.org/packages/deemru/waveskit)  [![travis](https://img.shields.io/travis/deemru/WavesKit.svg?label=travis)](https://travis-ci.org/deemru/WavesKit) [![codacy](https://img.shields.io/codacy/grade/5b22f904c9ba417cb278cb4efc58a7ce.svg?label=codacy)](https://app.codacy.com/project/deemru/WavesKit/dashboard) [![license](https://img.shields.io/packagist/l/deemru/waveskit.svg)](https://packagist.org/packages/deemru/waveskit)
 
 [WavesKit](https://github.com/deemru/WavesKit) is an all-in-one Waves Platform development kit for the PHP language.
 
