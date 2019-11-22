@@ -529,7 +529,7 @@ class WavesKit
         return json_decode( $json, true, 512, JSON_BIGINT_AS_STRING );
     }
 
-    private function fetchInit( $address )
+    private function fetchInit( $address, $doConnect )
     {
         if( false === ( $curl = curl_init() ) )
             return false;
@@ -550,7 +550,7 @@ class WavesKit
         if( false === curl_setopt_array( $curl, $options ) )
             return false;
 
-        if( !defined( 'WK_CURL_SKIP_CONNECT' ) && !curl_exec( $curl ) && 0 !== ( $errno = curl_errno( $curl ) ) )
+        if( $doConnect && !curl_exec( $curl ) && 0 !== ( $errno = curl_errno( $curl ) ) )
         {
             $this->log( 'e', "curl error $errno: " . curl_error( $curl ) );
             curl_close( $curl );
@@ -589,6 +589,12 @@ class WavesKit
         $this->nodes = is_array( $nodeAddress ) ? $nodeAddress : [ $nodeAddress ];
         if( isset( $backupNodes ) )
             $this->nodes = array_merge( $this->nodes, $backupNodes );
+
+        if( isset( $this->multiCurl ) )
+        {
+            curl_multi_close( $this->multiCurl );
+            unset( $this->multiCurl );
+        }
 
         $this->curls = [];
         $this->cacheLifetime = $cacheLifetime;
@@ -659,7 +665,7 @@ class WavesKit
                 $curl = $this->curls[$i];
             else
             {
-                $curl = $this->fetchInit( $node );
+                $curl = $this->fetchInit( $node, true );
                 if( $curl === false )
                     continue;
 
@@ -717,7 +723,7 @@ class WavesKit
                 $curl = $this->curls[$i];
             else
             {
-                $curl = $this->fetchInit( $node );
+                $curl = $this->fetchInit( $node, false );
                 if( $curl === false )
                     continue;
 
@@ -728,7 +734,11 @@ class WavesKit
                 return false;
         }
 
-        $multiCurl = curl_multi_init();
+        if( !isset( $this->multiCurl ) )
+            $this->multiCurl = curl_multi_init();
+
+        $multiCurl = $this->multiCurl;
+
         for( $i = 0; $i < $n; $i++ )
             if( isset( $this->curls[$i] ) )
                 curl_multi_add_handle( $multiCurl, $this->curls[$i] );
@@ -766,7 +776,6 @@ class WavesKit
             curl_multi_remove_handle( $multiCurl, $curl );
         }
 
-        curl_multi_close( $multiCurl );
         return $multiData;
     }
 
