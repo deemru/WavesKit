@@ -22,7 +22,7 @@
 |[encryptash](#waveskitencryptash)|Encrypts data with cryptash parameters|
 |[ensure](#waveskitensure)|Ensures a transaction confirmed and reached required confirmations|
 |[fetch](#waveskitfetch)|Fetches GET or POST response|
-|[fetchMulti](#waveskitfetchmulti)|Fetches GET or POST response from all nodes|
+|[fetchMulti](#waveskitfetchmulti)|Fetches GET or POST responses from all nodes|
 |[getAddress](#waveskitgetaddress)|Gets address|
 |[getAddressByAlias](#waveskitgetaddressbyalias)|Gets an address by an alias|
 |[getAddressScript](#waveskitgetaddressscript)|Gets a script associated with an address|
@@ -31,6 +31,7 @@
 |[getData](#waveskitgetdata)|Gets data value by an address key from the blockchain|
 |[getLastBitFlip](#waveskitgetlastbitflip)|Get last bit flip option status|
 |[getNodeAddress](#waveskitgetnodeaddress)|Gets main node address|
+|[getOrders](#waveskitgetorders)|Gets order history for your account|
 |[getPrivateKey](#waveskitgetprivatekey)|Gets private key|
 |[getPublicKey](#waveskitgetpublickey)|Gets public Key|
 |[getSodium](#waveskitgetsodium)|Gets sodium option status|
@@ -754,6 +755,33 @@ Gets main node address
 `string|false`
 
 > Main node address or FALSE on failure
+
+
+<hr />
+
+
+### WavesKit::getOrders  
+
+**Description**
+
+```php
+public getOrders (array $activeOnly)
+```
+
+Gets order history for your account 
+
+ 
+
+**Parameters**
+
+* `(array) $activeOnly`
+: Active only orders  
+
+**Return Values**
+
+`array|false`
+
+> Your orders as an array or FALSE on failure
 
 
 <hr />

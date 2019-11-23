@@ -1082,6 +1082,30 @@ class WavesKit
     }
 
     /**
+     * Gets order history for your account
+     *
+     * @param  array $activeOnly Active only orders 
+     *
+     * @return array|false Your orders as an array or FALSE on failure
+     */
+    public function getOrders( $activeOnly = true )
+    {
+        $timestamp = $this->timestamp();
+        $signature = $this->base58Encode( $this->sign( $this->getPublicKey( true ) . pack( 'J', $timestamp ) ) );
+
+        $headers = [ 'Timestamp: ' . $timestamp, 'Signature: ' . $signature ];
+
+        $activeOnly = '?activeOnly=' . ( $activeOnly ? 'true' : 'false' );
+        if( false === ( $json = $this->fetch( '/matcher/orderbook/' . $this->getPublicKey() . $activeOnly, false, null, null, $headers ) ) )
+            return false;
+
+        if( null === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        return $json;
+    }
+
+    /**
      * Gets an address by an alias
      *
      * @param  string $alias Alias
