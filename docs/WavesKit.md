@@ -765,7 +765,7 @@ Gets main node address
 **Description**
 
 ```php
-public getOrders (array $activeOnly)
+public getOrders (bool $activeOnly)
 ```
 
 Gets order history for your account 
@@ -775,7 +775,7 @@ Gets order history for your account
 **Parameters**
 
 * `(array) $activeOnly`
-: Active only orders  
+: Active only orders (default: true)  
 
 **Return Values**
 

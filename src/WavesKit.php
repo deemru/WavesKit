@@ -1084,7 +1084,7 @@ class WavesKit
     /**
      * Gets order history for your account
      *
-     * @param  array $activeOnly Active only orders 
+     * @param  bool $activeOnly Active only orders (default: true)
      *
      * @return array|false Your orders as an array or FALSE on failure
      */
