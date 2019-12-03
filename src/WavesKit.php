@@ -960,6 +960,9 @@ class WavesKit
         if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
+        if( !isset( $json['signature'] ) || !isset( $json['reference'] ) )
+            return false;
+
         return $json;
     }
 
