@@ -1080,7 +1080,7 @@ class WavesKit
     {
         $this->setDefaultMatcher();
 
-        if( false === ( $json = $this->fetch( '/matcher/orderbook', true, json_encode( $tx ) ) ) )
+        if( false === ( $json = $this->matcher->fetch( '/matcher/orderbook', true, json_encode( $tx ) ) ) )
             return false;
 
         if( null === ( $json = $this->json_decode( $json ) ) )
@@ -1110,7 +1110,7 @@ class WavesKit
         $amountAsset = isset( $tx['assetPair']['amountAsset'] ) ? $tx['assetPair']['amountAsset'] : 'WAVES';
         $priceAsset = isset( $tx['assetPair']['priceAsset'] ) ? $tx['assetPair']['priceAsset'] : 'WAVES';
 
-        if( false === ( $json = $this->fetch( "/matcher/orderbook/$amountAsset/$priceAsset/cancel", true, json_encode( $cancel ) ) ) )
+        if( false === ( $json = $this->matcher->fetch( '/matcher/orderbook/' . $amountAsset . '/' . $priceAsset . '/cancel', true, json_encode( $cancel ) ) ) )
             return false;
 
         if( null === ( $json = $this->json_decode( $json ) ) )
@@ -1139,7 +1139,7 @@ class WavesKit
         $headers = [ 'Timestamp: ' . $timestamp, 'Signature: ' . $signature ];
 
         $activeOnly = '?activeOnly=' . ( $activeOnly ? 'true' : 'false' );
-        if( false === ( $json = $this->fetch( '/matcher/orderbook/' . $this->getPublicKey() . $activeOnly, false, null, null, $headers ) ) )
+        if( false === ( $json = $this->matcher->fetch( '/matcher/orderbook/' . $this->getPublicKey() . $activeOnly, false, null, null, $headers ) ) )
             return false;
 
         if( null === ( $json = $this->json_decode( $json ) ) )
