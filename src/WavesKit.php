@@ -632,6 +632,40 @@ class WavesKit
         }
     }
 
+    private function setDefaultMatcher()
+    {
+        if( !isset( $this->matcher ) )
+        {
+            $this->matcher = new WavesKit( $this->getChainId() );
+            switch( $this->chainId )
+            {
+                case 'W':
+                    $this->matcher->setNodeAddress( 'https://matcher.waves.exchange' );
+                    break;
+                case 'T':
+                    $this->matcher->setNodeAddress( 'https://matcher.testnet.wavesnodes.com' );
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        if( !isset( $this->matcherPublicKey ) )
+        {
+            switch( $this->chainId )
+            {
+                case 'W':
+                    $this->matcherPublicKey = '9cpfKN9suPNvfeUNphzxXMjcnn974eme8ZhWUjaktzU5';
+                    break;
+                case 'T':
+                    $this->matcherPublicKey = '8QUAqtTckM5B8gvcuP7mMswat9SjKUuafJMusEoSn1Gy';
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
     /**
      * Fetches GET or POST response
      *
@@ -1044,6 +1078,8 @@ class WavesKit
      */
     public function txOrderBroadcast( $tx )
     {
+        $this->setDefaultMatcher();
+
         if( false === ( $json = $this->fetch( '/matcher/orderbook', true, json_encode( $tx ) ) ) )
             return false;
 
@@ -1065,6 +1101,8 @@ class WavesKit
      */
     public function txOrderCancel( $tx )
     {
+        $this->setDefaultMatcher();
+
         $cancel = [ 'sender' => $tx['senderPublicKey'], 'orderId' => $tx['id'] ];
         $cancelBody = $this->base58Decode( $tx['senderPublicKey'] ) . $this->base58Decode( $tx['id'] );
         $cancel['signature'] = $this->base58Encode( $this->sign( $cancelBody ) );
@@ -1093,6 +1131,8 @@ class WavesKit
      */
     public function getOrders( $activeOnly = true )
     {
+        $this->setDefaultMatcher();
+
         $timestamp = $this->timestamp();
         $signature = $this->base58Encode( $this->sign( $this->getPublicKey( true ) . pack( 'J', $timestamp ) ) );
 
@@ -1528,11 +1568,13 @@ class WavesKit
      */
     public function txOrder( $amountAsset, $priceAsset, $isSell, $amount, $price, $expiration = 30 * 24 * 60 * 60 * 1000, $options = null )
     {
+        $this->setDefaultMatcher();
+
         $tx = [];
         $tx['version'] = 2;
         $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
         $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
-        $tx['matcherPublicKey'] = isset( $options['matcherPublicKey'] ) ? $options['matcherPublicKey'] : '7kPFrHDiGw1rCm7LPszuECwWYL3dMf6iMifLRDJQZMzy';
+        $tx['matcherPublicKey'] = isset( $options['matcherPublicKey'] ) ? $options['matcherPublicKey'] : $this->matcherPublicKey;
         $tx['assetPair'] = [
             'amountAsset' => $amountAsset,
             'priceAsset' => $priceAsset ];
