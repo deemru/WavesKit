@@ -1095,31 +1095,41 @@ class WavesKit
     /**
      * Cancels an order on a matcher
      *
-     * @param  array $tx Order as an array
+     * @param  array|string $tx Order as an array or word "ALL" to cancel all orders
      *
-     * @return array|false Cancelled order as an array or FALSE on failure
+     * @return bool TRUE on cancel or FALSE on failure
      */
     public function txOrderCancel( $tx )
     {
         $this->setDefaultMatcher();
 
-        $cancel = [ 'sender' => $tx['senderPublicKey'], 'orderId' => $tx['id'] ];
-        $cancelBody = $this->base58Decode( $tx['senderPublicKey'] ) . $this->base58Decode( $tx['id'] );
-        $cancel['signature'] = $this->base58Encode( $this->sign( $cancelBody ) );
-
-        $amountAsset = isset( $tx['assetPair']['amountAsset'] ) ? $tx['assetPair']['amountAsset'] : 'WAVES';
-        $priceAsset = isset( $tx['assetPair']['priceAsset'] ) ? $tx['assetPair']['priceAsset'] : 'WAVES';
-
-        if( false === ( $json = $this->matcher->fetch( '/matcher/orderbook/' . $amountAsset . '/' . $priceAsset . '/cancel', true, json_encode( $cancel ) ) ) )
+        if( is_array( $tx ) )
+        {
+            $cancel = [];
+            $cancel['sender'] = $this->getPublicKey();
+            $cancel['orderId'] = $tx['id'];
+            $cancel['signature'] = $this->base58Encode( $this->sign( $this->getPublicKey( true ) . $this->base58Decode( $tx['id'] ) ) );
+        }
+        else if( is_string( $tx ) && strtoupper( $tx ) === "ALL" )
+        {
+            $cancel = [];
+            $cancel['sender'] = $this->getPublicKey();
+            $cancel['timestamp'] = $this->timestamp();
+            $cancel['signature'] = $this->base58Encode( $this->sign( $this->getPublicKey( true ) . pack( 'J', $cancel['timestamp'] ) ) );
+        }
+        else
+            return false;
+        
+        if( false === ( $json = $this->matcher->fetch( '/matcher/orderbook/cancel', true, json_encode( $cancel ) ) ) )
             return false;
 
         if( null === ( $json = $this->json_decode( $json ) ) )
             return false;
 
-        if( !isset( $json['orderId'] ) )
+        if( !isset( $json['success'] ) && $json['success'] === true )
             return false;
 
-        return $tx;
+        return true;
     }
 
     /**

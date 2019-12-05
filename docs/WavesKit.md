@@ -774,7 +774,7 @@ Gets order history for your account
 
 **Parameters**
 
-* `(array) $activeOnly`
+* `(bool) $activeOnly`
 : Active only orders (default: true)  
 
 **Return Values**
@@ -2047,7 +2047,7 @@ Broadcasts an order to a matcher
 **Description**
 
 ```php
-public txOrderCancel (array $tx)
+public txOrderCancel (array|string $tx)
 ```
 
 Cancels an order on a matcher 
@@ -2056,14 +2056,14 @@ Cancels an order on a matcher
 
 **Parameters**
 
-* `(array) $tx`
-: Order as an array  
+* `(array|string) $tx`
+: Order as an array or word "ALL" to cancel all orders  
 
 **Return Values**
 
-`array|false`
+`bool`
 
-> Cancelled order as an array or FALSE on failure
+> TRUE on cancel or FALSE on failure
 
 
 <hr />
