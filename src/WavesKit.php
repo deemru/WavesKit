@@ -547,6 +547,10 @@ class WavesKit
             $options[CURLOPT_SSL_VERIFYHOST] = false;
         }
 
+        if( defined( 'WK_CURL_OPTIONS' ) )
+            foreach( WK_CURL_OPTIONS as $k => $v )
+                $options[$k] = $v;
+
         if( false === curl_setopt_array( $curl, $options ) )
             return false;
 
