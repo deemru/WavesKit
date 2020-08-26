@@ -1487,7 +1487,7 @@ class WavesKit
         $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
         $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000;
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
-        $tx['quantity'] = $quantity;
+        $tx['amount'] = $quantity;
         $tx['assetId'] = $asset;
         return $tx;
     }
@@ -2013,7 +2013,7 @@ class WavesKit
                 $body .= $this->getChainId();
                 $body .= $this->base58Decode( $tx['senderPublicKey'] );
                 $body .= $this->base58Decode( $tx['assetId'] );
-                $body .= pack( 'J', $tx['quantity'] );
+                $body .= pack( 'J', $tx['amount'] );
                 $body .= pack( 'J', $tx['fee'] );
                 $body .= pack( 'J', $tx['timestamp'] );
                 break;
