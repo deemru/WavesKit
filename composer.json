@@ -19,6 +19,7 @@
         "deemru/cryptash": "1.0.*",
         "deemru/pairs": "1.0.*",
         "composer/ca-bundle": "*",
+        "google/protobuf": "^3.13",
         "ext-curl": "*",
         "ext-gmp": "*",
         "ext-mbstring": "*"
@@ -27,7 +28,11 @@
         "ext-sodium": "Up to ~2000x faster sign/verify"
     },
     "autoload": {
-        "psr-4": { "deemru\\": "src/" }
+        "psr-4": {
+            "deemru\\": "src/",
+            "Waves\\": "protobuf/Waves/",
+            "GPBMetadata\\Waves\\": "protobuf/GPBMetadata/Waves/"
+        }
     },
     "scripts": {
         "test": [
