@@ -567,7 +567,7 @@ $t->pretest( 'txInvokeScript (return Waves)' );
         ],
     ];
 
-    $tx = $wk->txInvokeScript( '3NBaYzWT2odsyrZ2u1ghsrHinBm4xFRAgLX', 'retransmit', $args, $payments );
+    $tx = $wk->txInvokeScript( '3N7uoMNjqNt1jf9q9f9BSr7ASk1QtzJABEY', 'retransmit', $args, $payments );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
 
