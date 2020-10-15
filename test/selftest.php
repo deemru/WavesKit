@@ -26,7 +26,7 @@ function ms( $ms )
 class tester
 {
     private $successful = 0;
-    private $failed = 0;
+    public $failed = 0;
     private $depth = 0;
     private $info = [];
     private $start = [];
@@ -265,6 +265,9 @@ $t->pretest( 'private faucet ready' );
     $t->test( $balance >= 10000000000 );
     $wkFaucet->log( 'i', "faucet = $address (" . number_format( $balance / 100000000, 8, '.', '' ) . ' Waves)' );
 }
+
+if( $t->failed > 0 )
+    $t->finish();
 
 $t->pretest( 'new tester' );
 {
