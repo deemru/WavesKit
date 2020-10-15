@@ -1461,7 +1461,7 @@ class WavesKit
         $tx['version'] = 2;
         $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
         $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
-        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000000;
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000;
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
         $tx['assetId'] = $asset;
         $tx['quantity'] = $quantity;
