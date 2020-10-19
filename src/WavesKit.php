@@ -1765,6 +1765,31 @@ class WavesKit
         return $tx;
     }
 
+    /**
+     * Makes update asset information transaction as an array
+     *
+     * @param  string       $assetId          Asset ID
+     * @param  string       $name           Updated asset name
+     * @param  string       $description    Updated asset description
+     * @param  array|null   $options        Transaction options as an array (default: null)
+     *
+     * @return array Update asset information transaction as an array or FALSE on failure
+     */
+    public function txUpdateAssetInfo( $assetId, $name, $description, $options = null )
+    {
+        $tx = [];
+        $tx['type'] = 17;
+        $tx['version'] = 1;
+        $tx['chainId'] = ord( $this->getChainId() );
+        $tx['assetId'] = $assetId;
+        $tx['name'] = $name;
+        $tx['description'] = $description;
+        $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
+        $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 100000;
+        return $tx;
+    }
+
     private function userDataToTxData( $userData )
     {
         $data = [];
@@ -2145,6 +2170,28 @@ class WavesKit
                 $body .= pack( 'J', $tx['fee'] );
                 $body .= isset( $tx['feeAssetId'] ) ? chr( 1 ) . $this->base58Decode( $tx['feeAssetId'] ) : chr( 0 );
                 $body .= pack( 'J', $tx['timestamp'] );
+                break;
+
+            case 17: // update asset info
+                $updateAssetInfo = new \Waves\UpdateAssetInfoTransactionData;
+                $updateAssetInfo->setAssetId( $this->base58Decode( $tx['assetId'] ) );
+                $updateAssetInfo->setName( $tx['name'] );
+                $updateAssetInfo->setDescription( $tx['description'] );
+
+                $feeAmount = new \Waves\Amount;
+                if( isset( $tx['feeAssetId'] ) ) $feeAmount->setAssetId( $tx['feeAssetId'] );
+                $feeAmount->setAmount( $tx['fee'] );
+
+                $pbtx = new \Waves\Transaction();
+                $pbtx->setUpdateAssetInfo( $updateAssetInfo );
+
+                $pbtx->setVersion( $tx['version'] );
+                $pbtx->setChainId( $tx['chainId'] );
+                $pbtx->setSenderPublicKey( $this->base58Decode( $tx['senderPublicKey'] ) );
+                $pbtx->setFee( $feeAmount );
+                $pbtx->setTimestamp( $tx['timestamp'] );
+
+                $body = $pbtx->serializeToString();
                 break;
 
             default:

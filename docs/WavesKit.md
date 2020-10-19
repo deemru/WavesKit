@@ -80,6 +80,7 @@
 |[txSign](#waveskittxsign)|Signs a transaction|
 |[txSponsorship](#waveskittxsponsorship)|Makes sponsorship transaction as an array|
 |[txTransfer](#waveskittxtransfer)|Makes transfer transaction as an array|
+|[txUpdateAssetInfo](#waveskittxupdateassetinfo)|Makes update asset information transaction as an array|
 |[verify](#waveskitverify)|Verifies a signature of a message by a public key|
 
 
@@ -2190,6 +2191,39 @@ Makes transfer transaction as an array
 `array`
 
 > Transfer transaction as an array or FALSE on failure
+
+
+<hr />
+
+
+### WavesKit::txUpdateAssetInfo  
+
+**Description**
+
+```php
+public txUpdateAssetInfo (string $assetId, string $name, string $description, array|null $options)
+```
+
+Makes update asset information transaction as an array 
+
+ 
+
+**Parameters**
+
+* `(string) $assetId`
+: Asset ID  
+* `(string) $name`
+: Updated asset name  
+* `(string) $description`
+: Updated asset description  
+* `(array|null) $options`
+: Transaction options as an array (default: null)  
+
+**Return Values**
+
+`array`
+
+> Update asset information transaction as an array or FALSE on failure
 
 
 <hr />
