@@ -538,6 +538,7 @@ class WavesKit
         $options = [ CURLOPT_CONNECTTIMEOUT  => $this->curlTimeout,
                      CURLOPT_TIMEOUT         => $this->curlTimeout,
                      CURLOPT_URL             => $address,
+                     CURLOPT_HTTP_VERSION    => CURL_HTTP_VERSION_1_1,
                      CURLOPT_CONNECT_ONLY    => true,
                      CURLOPT_CAINFO          => CaBundle::getBundledCaBundlePath() ];
 
@@ -640,14 +641,14 @@ class WavesKit
     {
         if( !isset( $this->matcher ) )
         {
-            $this->matcher = new WavesKit( $this->getChainId() );
+            $this->matcher = new WavesKit( $this->getChainId(), isset( $this->logFunction ) ? $this->logFunction : null );
             switch( $this->chainId )
             {
                 case 'W':
                     $this->matcher->setNodeAddress( 'https://matcher.waves.exchange' );
                     break;
                 case 'T':
-                    $this->matcher->setNodeAddress( 'https://matcher.testnet.wavesnodes.com' );
+                    $this->matcher->setNodeAddress( 'https://matcher-testnet.waves.exchange' );
                     break;
                 default:
                     break;
