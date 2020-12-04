@@ -49,6 +49,7 @@
 |[setBestNode](#waveskitsetbestnode)|Internally sets nodes in order of priority by the current height and response time|
 |[setCryptash](#waveskitsetcryptash)|Sets cryptash parameters|
 |[setLastBitFlip](#waveskitsetlastbitflip)|Sets last bit flip option|
+|[setLogFilter](#waveskitsetlogfilter)|Set filter specific messages|
 |[setNodeAddress](#waveskitsetnodeaddress)|Sets node address with cache lifetime and backup node addresses|
 |[setPairsDatabase](#waveskitsetpairsdatabase)|Sets database pairs path|
 |[setPrivateKey](#waveskitsetprivatekey)|Sets private key|
@@ -1254,6 +1255,33 @@ Sets last bit flip option
 
 * `(bool) $enabled`
 : Enable or disable (default: enable)  
+
+**Return Values**
+
+`void`
+
+
+
+
+<hr />
+
+
+### WavesKit::setLogFilter  
+
+**Description**
+
+```php
+public setLogFilter (array $filter)
+```
+
+Set filter specific messages 
+
+ 
+
+**Parameters**
+
+* `(array) $filter`
+: Array of sub-strings to filter  
 
 **Return Values**
 

@@ -24,6 +24,13 @@ class WavesKit
         $this->chainId = $chainId;
         if( isset( $logFunction ) )
             $this->logFunction = $logFunction;
+
+        static $tz;
+        if( !isset( $tz ) )
+        {
+            date_default_timezone_set( date_default_timezone_get() );
+            $tz = true;
+        }
     }
 
     /**
@@ -62,13 +69,10 @@ class WavesKit
                 return;
         }
 
-        static $tz;
-
-        if( !isset( $tz ) )
-        {
-            date_default_timezone_set( date_default_timezone_get() );
-            $tz = true;
-        }
+        if( isset( $this->logFilter ) )
+            foreach( $this->logFilter as $filter )
+                if( false !== strpos( $message, $filter ) )
+                    return;
 
         $log = date( 'Y.m.d H:i:s ' );
         switch( $level )
@@ -87,6 +91,18 @@ class WavesKit
         else
             echo $log . PHP_EOL;
         $this->lastLog = $log;
+    }
+
+    /**
+     * Set filter specific messages
+     *
+     * @param  array $filter Array of sub-strings to filter
+     *
+     * @return void
+     */
+    public function setLogFilter( $filter )
+    {
+        $this->logFilter = $filter;
     }
 
     /**
