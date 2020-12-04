@@ -1251,13 +1251,14 @@ class WavesKit
      * Ensures a transaction confirmed and reached required confirmations
      *
      * @param  array    $tx             Transaction as an array
-     * @param  int      $confirmations  Number of confirmations to reach
-     * @param  int      $sleep          Seconds to sleep between requests
-     * @param  int      $timeout        Timeout to reach lost status
+     * @param  int      $confirmations  Number of confirmations to reach (default: 0)
+     * @param  int      $sleep          Seconds to sleep between requests (default: 1)
+     * @param  int      $timeout        Timeout to reach lost status (default: 30)
+     * @param  bool     $hard           Use hard timeout (default: false)
      *
      * @return array|false Ensured transaction as an array or FALSE on failure
      */
-    public function ensure( $tx, $confirmations = 0, $sleep = 1, $timeout = 30 )
+    public function ensure( $tx, $confirmations = 0, $sleep = 1, $timeout = 30, $hard = false )
     {
         if( $tx === false )
             return false;
@@ -1270,6 +1271,12 @@ class WavesKit
         {
             if( !$sleep )
                 return false;
+
+            if( $hard && $n > $timeout )
+            {
+                $this->log( 'w', "($id) hard timeout reached ($n)" );
+                return false;
+            }
 
             $n_diff = $n - $n_utx;
             if( $n_utx )

@@ -444,7 +444,7 @@ Encrypts data with cryptash parameters
 **Description**
 
 ```php
-public ensure (array $tx, int $confirmations, int $sleep, int $timeout)
+public ensure (array $tx, int $confirmations, int $sleep, int $timeout, bool $hard)
 ```
 
 Ensures a transaction confirmed and reached required confirmations 
@@ -456,11 +456,13 @@ Ensures a transaction confirmed and reached required confirmations
 * `(array) $tx`
 : Transaction as an array  
 * `(int) $confirmations`
-: Number of confirmations to reach  
+: Number of confirmations to reach (default: 0)  
 * `(int) $sleep`
-: Seconds to sleep between requests  
+: Seconds to sleep between requests (default: 1)  
 * `(int) $timeout`
-: Timeout to reach lost status  
+: Timeout to reach lost status (default: 30)  
+* `(bool) $hard`
+: Use hard timeout (default: false)  
 
 **Return Values**
 
