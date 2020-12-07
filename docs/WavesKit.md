@@ -769,7 +769,7 @@ Gets main node address
 **Description**
 
 ```php
-public getOrders (bool $activeOnly)
+public getOrders (bool $activeOnly, bool|null $closedOnly)
 ```
 
 Gets order history for your account 
@@ -780,6 +780,8 @@ Gets order history for your account
 
 * `(bool) $activeOnly`
 : Active only orders (default: true)  
+* `(bool|null) $closedOnly`
+: Closed only orders (default: null)  
 
 **Return Values**
 

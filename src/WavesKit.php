@@ -1156,11 +1156,12 @@ class WavesKit
     /**
      * Gets order history for your account
      *
-     * @param  bool $activeOnly Active only orders (default: true)
+     * @param  bool      $activeOnly Active only orders (default: true)
+     * @param  bool|null $closedOnly Closed only orders (default: null)
      *
      * @return array|false Your orders as an array or FALSE on failure
      */
-    public function getOrders( $activeOnly = true )
+    public function getOrders( $activeOnly = true, $closedOnly = null )
     {
         $this->setDefaultMatcher();
 
@@ -1169,8 +1170,10 @@ class WavesKit
 
         $headers = [ 'Timestamp: ' . $timestamp, 'Signature: ' . $signature ];
 
-        $activeOnly = '?activeOnly=' . ( $activeOnly ? 'true' : 'false' );
-        if( false === ( $json = $this->matcher->fetch( '/matcher/orderbook/' . $this->getPublicKey() . $activeOnly, false, null, null, $headers ) ) )
+        $params = '?activeOnly=' . ( $activeOnly ? 'true' : 'false' );
+        if( isset( $closedOnly ) )
+            $params .= '&closedOnly=' . ( $closedOnly ? 'true' : 'false' );
+        if( false === ( $json = $this->matcher->fetch( '/matcher/orderbook/' . $this->getPublicKey() . $params, false, null, null, $headers ) ) )
             return false;
 
         if( null === ( $json = $this->json_decode( $json ) ) )
