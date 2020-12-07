@@ -701,7 +701,7 @@ class WavesKit
     public function fetch( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
     {
         $this->setDefaultNode();
-
+		
         if( !$post && null !== ( $fetch = $this->getNodeCache( $url ) ) )
             return $fetch;
 
@@ -1157,10 +1157,11 @@ class WavesKit
      * Gets order history for your account
      *
      * @param  bool $activeOnly Active only orders (default: true)
+	 * @param  bool $closedOnly Closed only orders (default: true)
      *
      * @return array|false Your orders as an array or FALSE on failure
      */
-    public function getOrders( $activeOnly = true )
+    public function getOrders( $activeOnly = true, $closedOnly = true )
     {
         $this->setDefaultMatcher();
 
@@ -1168,9 +1169,14 @@ class WavesKit
         $signature = $this->base58Encode( $this->sign( $this->getPublicKey( true ) . pack( 'J', $timestamp ) ) );
 
         $headers = [ 'Timestamp: ' . $timestamp, 'Signature: ' . $signature ];
-
-        $activeOnly = '?activeOnly=' . ( $activeOnly ? 'true' : 'false' );
-        if( false === ( $json = $this->matcher->fetch( '/matcher/orderbook/' . $this->getPublicKey() . $activeOnly, false, null, null, $headers ) ) )
+		
+		$query = '?' . http_build_query( array( 
+				'activeOnly' => ( $activeOnly ? 'true' : 'false' ), 
+				'closedOnly' => ( $closedOnly ? 'true' : 'false' )
+			)
+		);
+				
+        if( false === ( $json = $this->matcher->fetch( '/matcher/orderbook/' . $this->getPublicKey() . $query, false, null, null, $headers ) ) )
             return false;
 
         if( null === ( $json = $this->json_decode( $json ) ) )
