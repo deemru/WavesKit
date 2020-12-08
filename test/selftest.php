@@ -238,7 +238,7 @@ function selftest_ensure( $wk, $tx, $confirmations, $sleep )
         return false;
 
     // testnet workaround
-    sleep( 10 );
+    sleep( 20 );
     return $tx;
 }
 
