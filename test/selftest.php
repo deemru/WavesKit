@@ -231,20 +231,9 @@ $t->pretest( "64-bit required for transactions" );
 if( file_exists( __DIR__ . '/private.php' ) )
     require_once __DIR__ . '/private.php';
 
-function selftest_ensure( $wk, $tx, $confirmations, $sleep )
-{
-    $tx = $wk->ensure( $tx, $confirmations, $sleep );
-    if( $tx === false )
-        return false;
-
-    // testnet workaround
-    sleep( 20 );
-    return $tx;
-}
-
 $wavesAmount = 1000000000;
-$confirmations = 0;
-$sleep = 1;
+$confirmations = 1;
+$sleep = 10;
 $nodes =
 [
     'https://example.com',
@@ -301,7 +290,7 @@ if( $balance < $wavesAmount )
         $tx = $wkFaucet->txTransfer( $wk->getAddress(), $wavesAmount );
         $tx = $wkFaucet->txSign( $tx );
         $tx = $wkFaucet->txBroadcast( $tx );
-        $tx = selftest_ensure( $wkFaucet, $tx, $confirmations, $sleep );
+        $tx = $wkFaucet->ensure( $tx, $confirmations, $sleep );
 
         $balance = $wk->balance();
         $balance = $balance[0]['balance'];
@@ -319,7 +308,7 @@ $t->pretest( "txIssue ($tokenName)" );
     $tx = $wk->txIssue( $tokenName, $tokenDescription, $tokenQuantity, $tokenDecimals, true );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $tokenId = $tx['id'];
     $balance = $wk->balance();
@@ -333,7 +322,7 @@ $t->pretest( "txReissue (x2)" );
     $tx = $wk->txReissue( $tokenId, $tokenQuantity, false );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $balance = $wk->balance();
     $balance = $balance[$tokenId]['balance'];
@@ -357,7 +346,7 @@ $t->pretest( "txBurn (x/2)" );
     $tx = $wk->txBurn( $tokenId, $tokenQuantity );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $balance = $wk->balance();
     $balance = $balance[$tokenId]['balance'];
@@ -370,7 +359,7 @@ $t->pretest( "txSponsorship" );
     $tx = $wk->txSponsorship( $tokenId, 1 );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $balance = $wk->balance();
     $balance = $balance[0]['balance'];
@@ -379,7 +368,7 @@ $t->pretest( "txSponsorship" );
     $tx = $wk->txTransfer( $wkFaucet->getAddress(), 1, $tokenId, $options );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $balanceNew = $wk->balance();
     $balanceNew = $balanceNew[0]['balance'];
@@ -396,7 +385,7 @@ $t->pretest( "txLease + txLeaseCancel" );
     $tx = $wk->txLease( $wkFaucet->getAddress(), $leaseAmount );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $leaseId = $tx['id'];
 
@@ -411,7 +400,7 @@ $t->pretest( "txLease + txLeaseCancel" );
     $tx = $wk->txLeaseCancel( $leaseId );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, 0, $sleep );
+    $tx = $wk->ensure( $tx, 0, $sleep );
 
     $t->test( $tx !== false && $leasedTransfer === false );
 }
@@ -422,7 +411,7 @@ $t->pretest( "txAlias ($alias)" );
     $tx = $wk->txAlias( $alias );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $address = $wk->getAddressByAlias( $alias );
 
@@ -445,7 +434,7 @@ $t->pretest( "txMass (x$n)" );
     $tx = $wk->txMass( $recipients, $amounts, $tokenId );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $balancesOK = true;
     for( $i = 0; $i < $n; $i++ )
@@ -489,7 +478,7 @@ $t->pretest( "txData (x$n)" );
     $tx = $wk->txData( $data );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $dataOK = true;
     foreach( $data as $key => $value )
@@ -517,7 +506,7 @@ $t->pretest( "txAddressScript" );
     $tx = $wk->txAddressScript( $script['script'] );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $scriptOK = $script['script'] === $wk->getAddressScript()['script'];
 
@@ -525,7 +514,7 @@ $t->pretest( "txAddressScript" );
     $tx['fee'] = $wk->calculateFee( $tx );
     $tx = $wkFaucet->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $t->test( $scriptOK && $tx !== false );
 }
@@ -539,7 +528,7 @@ $t->pretest( "txIssue + txAssetScript (s$tokenName)" );
     $tx = $wk->txIssue( $tokenName, $tokenDescription, $tokenQuantity, $tokenDecimals, true, $script );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $tokenId = $tx['id'];
     $balance = $wk->balance();
@@ -550,7 +539,7 @@ $t->pretest( "txIssue + txAssetScript (s$tokenName)" );
     $tx = $wk->txAssetScript( $tokenId, $script );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
     $tx = $wk->txReissue( $tokenId, $tokenQuantity, false );
     $tx = $wk->txSign( $tx );
