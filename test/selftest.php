@@ -232,8 +232,8 @@ if( file_exists( __DIR__ . '/private.php' ) )
     require_once __DIR__ . '/private.php';
 
 $wavesAmount = 1000000000;
-$confirmations = 1;
-$sleep = 10;
+$confirmations = 0;
+$sleep = 1;
 $nodes =
 [
     'https://example.com',
@@ -272,6 +272,8 @@ if( $t->failed > 0 )
 $t->pretest( 'new tester' );
 {
     $wk = new WavesKit( $wkFaucet->getChainId() );
+    if( !empty( getenv( 'WAVESKIT_NODES' ) ) )
+        $wk->setNodeAddress( getenv( 'WAVESKIT_NODES' ) );
     $wk->setSeed( $wk->randomSeed() );
     $address = $wk->getAddress();
     $balance = $wk->balance();
