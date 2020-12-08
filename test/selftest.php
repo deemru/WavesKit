@@ -233,7 +233,7 @@ if( file_exists( __DIR__ . '/private.php' ) )
 
 function selftest_ensure( $wk, $tx, $confirmations, $sleep )
 {
-    $tx = selftest_ensure( $wk, $tx, $confirmations, $sleep );
+    $tx = $wk->ensure( $tx, $confirmations, $sleep );
     if( $tx === false )
         return false;
 
