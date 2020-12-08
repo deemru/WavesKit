@@ -232,8 +232,8 @@ if( file_exists( __DIR__ . '/private.php' ) )
     require_once __DIR__ . '/private.php';
 
 $wavesAmount = 1000000000;
-$confirmations = 1;
-$sleep = 10;
+$confirmations = 0;
+$sleep = 1;
 $nodes =
 [
     'https://example.com',
