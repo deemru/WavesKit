@@ -2187,13 +2187,12 @@ class WavesKit
                     $body .= chr( 0 );
                 }
                 $body .= pack( 'n', count( $tx['payment'] ) );
-                $payments = '';
                 foreach( $tx['payment'] as $rec )
                 {
-                    $payments .= pack( 'J', $rec['amount'] );
-                    $payments .= isset( $rec['assetId'] ) ? ( chr( 1 ) . $this->base58Decode( $rec['assetId'] ) ) : chr( 0 );
+                    $payment = pack( 'J', $rec['amount'] );
+                    $payment .= isset( $rec['assetId'] ) ? ( chr( 1 ) . $this->base58Decode( $rec['assetId'] ) ) : chr( 0 );
+                    $body .= pack( 'n', strlen( $payment ) ) . $payment;
                 }
-                $body .= strlen( $payments ) ? ( pack( 'n', strlen( $payments ) ) . $payments ) : '';
                 $body .= pack( 'J', $tx['fee'] );
                 $body .= isset( $tx['feeAssetId'] ) ? chr( 1 ) . $this->base58Decode( $tx['feeAssetId'] ) : chr( 0 );
                 $body .= pack( 'J', $tx['timestamp'] );
