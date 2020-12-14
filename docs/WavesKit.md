@@ -121,7 +121,7 @@ Creates WavesKit instance
 **Description**
 
 ```php
-public balance (string|null $address)
+public balance (string|null $address, string|null $asset)
 ```
 
 Gets an address full balance 
@@ -132,12 +132,14 @@ Gets an address full balance
 
 * `(string|null) $address`
 : Address to get balance (default: null)  
+* `(string|null) $asset`
+: Asset to get balance (default: null)  
 
 **Return Values**
 
 `array|false`
 
-> Balance of all assets as an array or FALSE on failure
+> Balance of all assets as an array or balance of specific asset or FALSE on failure
 
 
 <hr />

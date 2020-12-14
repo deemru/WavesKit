@@ -1367,13 +1367,30 @@ class WavesKit
      * Gets an address full balance
      *
      * @param  string|null $address Address to get balance (default: null)
+     * @param  string|null $asset   Asset to get balance (default: null)
      *
-     * @return array|false Balance of all assets as an array or FALSE on failure
+     * @return array|false Balance of all assets as an array or balance of specific asset or FALSE on failure
      */
-    public function balance( $address = null )
+    public function balance( $address = null, $asset = null )
     {
         if( false === ( $address = isset( $address ) ? $address : $this->getAddress() ) )
             return false;
+
+        if( isset( $asset ) )
+        {
+            if( $asset === 'WAVES' )
+                $query = '/addresses/balance/' . $address;
+            else
+                $query = '/assets/balance/' . $address . '/' . $asset;
+
+            if( false === ( $json = $this->fetch( $query ) ) )
+                return false;
+
+            if( null === ( $json = $this->json_decode( $json ) ) )
+                return false;
+
+            return $json['balance'];
+        }
 
         if( false === ( $json = $this->fetch( "/addresses/balance/$address" ) ) )
             return false;
