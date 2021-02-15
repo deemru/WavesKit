@@ -576,12 +576,15 @@ class WavesKit
 
         if( !isset( $this->curlOptions ) )
         {
-            if( !defined( 'WK_CURL_OPTIONS' ) )
-                define( 'WK_CURL_OPTIONS', [] );
-                
             $this->curlOptions = [];
-            foreach( WK_CURL_OPTIONS as $k => $v )
-                $this->curlOptions[$k] = $v;
+
+            if( PHP_MAJOR_VERSION > 5 )
+            {
+                if( !defined( 'WK_CURL_OPTIONS' ) )
+                    define( 'WK_CURL_OPTIONS', [] );
+                foreach( WK_CURL_OPTIONS as $k => $v )
+                    $this->curlOptions[$k] = $v;
+            }
         }
 
         foreach( $this->curlOptions as $k => $v )
