@@ -488,11 +488,23 @@ $t->pretest( "txData (x$n)" );
         if( is_array( $value ) )
         {
             $value = $value[0];
-            $dataOK &= $value === $wk->base64TxToBin( $wk->getData( $key ) );
+            $bcValue = $wk->base64TxToBin( $wk->getData( $key ) );
+            if( $value !== $bcValue )
+            {
+                $wk->log( 'e', 'value = ' . bin2hex( $value ) );
+                $wk->log( 'e', 'bcValue = ' . bin2hex( $bcValue ) );
+                $dataOK = false;
+            }
         }
         else
         {
-            $dataOK &= $value === $wk->getData( $key );
+            $bcValue = $wk->getData( $key );
+            if( $value !== $bcValue )
+            {
+                $wk->log( 'e', 'value = ' . $value );
+                $wk->log( 'e', 'bcValue = ' . $bcValue );
+                $dataOK = false;
+            }
         }
     }
 

@@ -62,7 +62,10 @@ class WavesKit
         if( isset( $this->logFunction ) )
         {
             if( is_callable( $this->logFunction ) )
-                return ($this->logFunction)( $level, $message );
+            {
+                $logFunction = $this->logFunction;
+                return $logFunction( $level, $message );
+            }
             elseif( $this->logFunction === false )
                 return;
             elseif( is_array( $this->logFunction ) && !in_array( $level, $this->logFunction, true ) )
@@ -550,7 +553,14 @@ class WavesKit
         if( false === ( $curl = curl_init() ) )
             return false;
 
-        $this->curlTimeout = defined( 'WK_CURL_TIMEOUT' ) ? WK_CURL_TIMEOUT : 5;
+        if( !isset( $this->curlTimeout ) )
+        {
+            if( !defined( 'WK_CURL_TIMEOUT' ) )
+                define( 'WK_CURL_TIMEOUT', 5 );
+
+            $this->curlTimeout = WK_CURL_TIMEOUT;
+        }
+
         $options = [ CURLOPT_CONNECTTIMEOUT  => $this->curlTimeout,
                      CURLOPT_TIMEOUT         => $this->curlTimeout,
                      CURLOPT_URL             => $address,
@@ -564,9 +574,18 @@ class WavesKit
             $options[CURLOPT_SSL_VERIFYHOST] = false;
         }
 
-        if( defined( 'WK_CURL_OPTIONS' ) )
+        if( !isset( $this->curlOptions ) )
+        {
+            if( !defined( 'WK_CURL_OPTIONS' ) )
+                define( 'WK_CURL_OPTIONS', [] );
+                
+            $this->curlOptions = [];
             foreach( WK_CURL_OPTIONS as $k => $v )
-                $options[$k] = $v;
+                $this->curlOptions[$k] = $v;
+        }
+
+        foreach( $this->curlOptions as $k => $v )
+            $options[$k] = $v;
 
         if( false === curl_setopt_array( $curl, $options ) )
             return false;
@@ -2413,7 +2432,7 @@ class WavesKit
                     }
                     elseif( !isset( $stableConfirmations ) )
                         $stableConfirmations = 0;
-                    elseif( ++$stableConfirmations >= $confirmations )
+                    elseif( isset( $stableConfirmations ) && ++$stableConfirmations >= $confirmations )
                         return $lastNewTransaction;
                 }
 
