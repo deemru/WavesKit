@@ -62,7 +62,7 @@ class WavesKit
         if( isset( $this->logFunction ) )
         {
             if( is_callable( $this->logFunction ) )
-                return $this->logFunction( $level, $message );
+                return ($this->logFunction)( $level, $message );
             elseif( $this->logFunction === false )
                 return;
             elseif( is_array( $this->logFunction ) && !in_array( $level, $this->logFunction, true ) )
@@ -972,8 +972,7 @@ class WavesKit
             return $json['NTP'];
         }
 
-        list( $usec, $sec ) = explode( " ", microtime() );
-        return (int)(( $sec + $usec ) * 1000 );
+        return (int)( microtime( true ) * 1000 );
     }
 
     /**
@@ -1183,6 +1182,31 @@ class WavesKit
     }
 
     /**
+     * Gets an order with status by its id for your account
+     *
+     * @param  string      $orderId Id of the order
+     *
+     * @return array|false Your order as an array or FALSE on failure
+     */
+    public function getOrderById( $orderId )
+    {
+        $this->setDefaultMatcher();
+
+        $timestamp = $this->timestamp();
+        $signature = $this->base58Encode( $this->sign( $this->getPublicKey( true ) . pack( 'J', $timestamp ) ) );
+
+        $headers = [ 'Timestamp: ' . $timestamp, 'Signature: ' . $signature ];
+
+        if( false === ( $json = $this->matcher->fetch( '/matcher/orderbook/' . $this->getPublicKey() . '/' . $orderId, false, null, null, $headers ) ) )
+            return false;
+
+        if( null === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        return $json;
+    }
+
+    /**
      * Gets an address by an alias
      *
      * @param  string $alias Alias
@@ -1369,7 +1393,7 @@ class WavesKit
      * @param  string|null $address Address to get balance (default: null)
      * @param  string|null $asset   Asset to get balance (default: null)
      *
-     * @return array|false Balance of all assets as an array or balance of specific asset or FALSE on failure
+     * @return array|int|false Balance of all assets as an array or balance of specific asset or FALSE on failure
      */
     public function balance( $address = null, $asset = null )
     {

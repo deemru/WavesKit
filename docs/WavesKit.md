@@ -31,6 +31,7 @@
 |[getData](#waveskitgetdata)|Gets data value by an address key from the blockchain|
 |[getLastBitFlip](#waveskitgetlastbitflip)|Get last bit flip option status|
 |[getNodeAddress](#waveskitgetnodeaddress)|Gets main node address|
+|[getOrderById](#waveskitgetorderbyid)|Gets an order with status by its id for your account|
 |[getOrders](#waveskitgetorders)|Gets order history for your account|
 |[getPrivateKey](#waveskitgetprivatekey)|Gets private key|
 |[getPublicKey](#waveskitgetpublickey)|Gets public Key|
@@ -137,7 +138,7 @@ Gets an address full balance
 
 **Return Values**
 
-`array|false`
+`array|int|false`
 
 > Balance of all assets as an array or balance of specific asset or FALSE on failure
 
@@ -761,6 +762,33 @@ Gets main node address
 `string|false`
 
 > Main node address or FALSE on failure
+
+
+<hr />
+
+
+### WavesKit::getOrderById  
+
+**Description**
+
+```php
+public getOrderById (string $orderId)
+```
+
+Gets an order with status by its id for your account 
+
+ 
+
+**Parameters**
+
+* `(string) $orderId`
+: Id of the order  
+
+**Return Values**
+
+`array|false`
+
+> Your order as an array or FALSE on failure
 
 
 <hr />
