@@ -21,4 +21,6 @@ jobs:
       run: composer install --prefer-dist --no-progress --no-suggest
 
     - name: Run selftest suite
+      env:
+        WAVESKIT_SEED: ${{ secrets.WAVESKIT_SEED }}
       run: composer run-script test --timeout=3600
