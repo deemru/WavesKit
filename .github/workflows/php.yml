@@ -1,4 +1,4 @@
-name: PHP selftests
+name: PHP
 
 on: [push]
 
