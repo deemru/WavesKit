@@ -505,13 +505,24 @@ $t->pretest( "txData (x$n)" );
     $tx = $wk->txBroadcast( $tx );
     $tx = $wk->ensure( $tx, $confirmations, $sleep );
 
+    function getData( $wk, $key )
+    {
+        for( $i = 0; $i < 3; ++$i )
+        {
+            if( false !== ( $value = $wk->getData( $key, null, false ) ) )
+                return $value['value'];
+            sleep( 2 );
+        }
+        return false;
+    }
+
     $dataOK = true;
     foreach( $data as $key => $value )
     {
         if( is_array( $value ) )
         {
             $value = $value[0];
-            $bcValue = $wk->base64TxToBin( $wk->getData( $key ) );
+            $bcValue = $wk->base64TxToBin( getData( $wk, $key ) );
             if( $value !== $bcValue )
             {
                 $wk->log( 'e', 'value = ' . bin2hex( $value ) );
@@ -521,7 +532,7 @@ $t->pretest( "txData (x$n)" );
         }
         else
         {
-            $bcValue = $wk->getData( $key );
+            $bcValue = getData( $wk, $key );
             if( $value !== $bcValue )
             {
                 $wk->log( 'e', 'value = ' . $value );
