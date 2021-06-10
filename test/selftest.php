@@ -72,7 +72,7 @@ class tester
     }
 }
 
-echo "   TEST: WavesKit\n";
+echo '   TEST: WavesKit @ PHP ' . PHP_VERSION . PHP_EOL;
 $t = new tester();
 
 // https://docs.wavesplatform.com/en/waves-environment/waves-protocol/cryptographic-practical-details.html
