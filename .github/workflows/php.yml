@@ -23,4 +23,5 @@ jobs:
     - name: Run selftest suite
       env:
         WAVESKIT_SEED: ${{ secrets.WAVESKIT_SEED }}
+        WAVESKIT_NODES: ${{ secrets.WAVESKIT_NODES }}
       run: composer run-script test --timeout=3600
