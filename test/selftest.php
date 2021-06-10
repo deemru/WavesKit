@@ -3,6 +3,8 @@
 require __DIR__ . '/../vendor/autoload.php';
 use deemru\WavesKit;
 
+use function deemru\curve25519\rnd;
+
 $wk = new WavesKit();
 
 function a2b( $a )
@@ -215,6 +217,27 @@ $t->pretest( "verify (lastbitflip)" );
     $addr = $wk->getAddress();
     $t->test( $addr !== $addr_saved && $wk->verify( $sig, $msg ) === true );
     $wk->setLastBitFlip( false );
+}
+
+$t->pretest( "base58Decode (cache much faster)" );
+{
+    $data = [];
+    for( $i = 0; $i < 64; ++$i )
+        $data[] = $wk->base58Encode( rnd( 26 + $i ) );
+
+    $tt = microtime( true );
+    for( $i = 0; $i < 128; ++$i )
+        foreach( $data as $value )
+            $wk->base58Decode( $value, false );
+    $tt_cache_false = microtime( true ) - $tt;
+
+    $tt = microtime( true );
+    for( $i = 0; $i < 128; ++$i )
+        foreach( $data as $value )
+            $wk->base58Decode( $value, true );
+    $tt_cache_true = microtime( true ) - $tt;
+
+    $t->test( $tt_cache_true * 32 < $tt_cache_false  );
 }
 
 $wk->log( 'i', 'check transactions' );
@@ -567,8 +590,9 @@ $t->pretest( "txIssue + txAssetScript (s$tokenName)" );
 $t->pretest( 'txInvokeScript (return Waves)' );
 {
     $balance = $wk->balance();
-    $balance = $balance[0]['balance'];
+    $balance = $balance[0]['balance'] - 500001;
 
+    // version 1
     $args =
     [
         $wkFaucet->getAddress(),
@@ -588,7 +612,32 @@ $t->pretest( 'txInvokeScript (return Waves)' );
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
 
-    $t->test( $tx !== false );
+    $result = $tx !== false;
+
+    // version 2
+    $args =
+    [
+        $wkFaucet->getAddress(),
+        1,
+        [ $wk->sha256( $wkFaucet->getAddress() ) ],
+        true,
+    ];
+    $payments =
+    [
+        [
+            "amount" => 1,
+            "assetId" => null,
+        ],
+    ];
+
+    $tx = $wk->txInvokeScript( '3N7uoMNjqNt1jf9q9f9BSr7ASk1QtzJABEY', 'retransmit', $args, $payments );
+    $tx['version'] = 2;
+    $tx = $wk->txSign( $tx );
+    $tx = $wk->txBroadcast( $tx );
+
+    $result &= $tx !== false;
+
+    $t->test( $result );
 }
 
 $t->finish();

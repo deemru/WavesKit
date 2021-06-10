@@ -120,11 +120,26 @@ class WavesKit
     /**
      * Decodes data from base58 string
      *
-     * @param  string $data Base58 string
+     * @param  string $data     Base58 string
+     * @param  bool   $useCache Use cache or not (default: true)
      *
      * @return string|false Decoded data or FALSE on failure
      */
-    public function base58Decode( $data ){ return ABCode::base58()->decode( $data ); }
+    public function base58Decode( $data, $useCache = true )
+    {
+        static $cache = [];
+
+        if( isset( $cache[$data] ) )
+            return $cache[$data];
+
+        if( count( $cache ) >= 256 )
+            $cache = [];
+
+        $result = ABCode::base58()->decode( $data );
+        if( $useCache === true )
+            $cache[$data] = $result;
+        return $result;
+    }
 
     /**
      * Hashes data with sha256
@@ -336,7 +351,7 @@ class WavesKit
     public function setSeed( $seed, $raw = true, $prefix = "\0\0\0\0" )
     {
         $this->cleanup();
-        $this->getPrivateKey( true, $raw ? $seed : $this->base58Decode( $seed ), $prefix );
+        $this->getPrivateKey( true, $raw ? $seed : $this->base58Decode( $seed, false ), $prefix );
     }
 
     /**
@@ -350,7 +365,7 @@ class WavesKit
     public function setPrivateKey( $privateKey, $raw = false )
     {
         $this->cleanup();
-        $this->privateKey = $raw ? $privateKey : $this->base58Decode( $privateKey );
+        $this->privateKey = $raw ? $privateKey : $this->base58Decode( $privateKey, false );
     }
 
     /**
@@ -947,7 +962,7 @@ class WavesKit
         if( $this->cacheLifetime <= 0 )
             return;
 
-        if( count( $this->cache ) > 256 )
+        if( count( $this->cache ) >= 256 )
             $this->resetNodeCache();
 
         $this->cache[$key] = [ $data, microtime( true ) ];
@@ -1458,6 +1473,43 @@ class WavesKit
             $balance[$rec['assetId']] = $rec;
 
         return $balance;
+    }
+
+    /**
+     * Gets an address NFTs balance
+     *
+     * @param  string|null $address Address to get NFTs (default: null)
+     *
+     * @return array|int|false Balance of all NFTs as an array or FALSE on failure
+     */
+    public function nfts( $address = null )
+    {
+        if( false === ( $address = isset( $address ) ? $address : $this->getAddress() ) )
+            return false;
+
+        $nfts = [];
+        $after = '';
+
+        for( ;; )
+        {
+            $fetch = '/assets/nft/' . $address . '/limit/100' . $after;
+            if( false === ( $json = $this->fetch( $fetch ) ) )
+                return false;
+
+            if( null === ( $json = $this->json_decode( $json ) ) )
+                return false;
+
+            unset( $nft );
+            foreach( $json as $nft )
+                $nfts[] = $nft;
+
+            if( !isset( $nft ) )
+                break;
+
+            $after = '?after=' . $nft['assetId'];
+        }
+
+        return $nfts;
     }
 
     private function recipientAddressOrAlias( $recipient )
@@ -2232,6 +2284,55 @@ class WavesKit
                 break;
 
             case 16: // invoke script
+                if( $tx['version'] === 2 )
+                {
+                    $dApp = new \Waves\Recipient;
+                    $dApp->setPublicKeyHash( substr( $this->base58Decode( $tx['dApp'] ), 2, 20 ) );
+
+                    if( isset( $tx['call']['function'] ) )
+                    {
+                        $body .= chr( 1 ) . chr( 9 ) . chr( 1 );
+                        $body .= pack( 'N', strlen( $tx['call']['function'] ) ) . $tx['call']['function'];
+                        $body .= pack( 'N', count( $tx['call']['args'] ) );
+                        foreach( $tx['call']['args'] as $rec )
+                            $body .= $this->getArgRecordBody( $rec );
+                    }
+                    else
+                    {
+                        $body .= chr( 0 );
+                    }
+
+                    $payments = [];
+                    foreach( $tx['payment'] as $rec )
+                    {
+                        $amount = new \Waves\Amount;
+                        if( isset( $rec['assetId'] ) ) $amount->setAssetId( $this->base58Decode( $rec['assetId'] ) );
+                        $amount->setAmount( $rec['amount'] );
+                        $payments[] = $amount;
+                    }
+
+                    $feeAmount = new \Waves\Amount;
+                    if( isset( $tx['feeAssetId'] ) ) $feeAmount->setAssetId( $this->base58Decode( $tx['feeAssetId'] ) );
+                    $feeAmount->setAmount( $tx['fee'] );
+
+                    $invokeScript = new \Waves\InvokeScriptTransactionData;
+                    $invokeScript->setDApp( $dApp );
+                    $invokeScript->setFunctionCall( $body );
+                    $invokeScript->setPayments( $payments );
+
+                    $pbtx = new \Waves\Transaction();
+                    $pbtx->setInvokeScript( $invokeScript );
+
+                    $pbtx->setVersion( $tx['version'] );
+                    $pbtx->setChainId( $tx['chainId'] );
+                    $pbtx->setSenderPublicKey( $this->base58Decode( $tx['senderPublicKey'] ) );
+                    $pbtx->setFee( $feeAmount );
+                    $pbtx->setTimestamp( $tx['timestamp'] );
+
+                    $body = $pbtx->serializeToString();
+                    break;
+                }
+
                 $body .= chr( 16 );
                 $body .= chr( 1 );
                 $body .= $this->getChainId();

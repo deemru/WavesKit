@@ -44,6 +44,7 @@
 |[json_decode](#waveskitjson_decode)|json_decode wrapper for WavesKit|
 |[keccak256](#waveskitkeccak256)|Hashes data with keccak256|
 |[log](#waveskitlog)|Logs a message with a level|
+|[nfts](#waveskitnfts)|Gets an address NFTs balance|
 |[randomSeed](#waveskitrandomseed)|Generates random seed string|
 |[secureHash](#waveskitsecurehash)|Hashes data with blake2b256 and keccak256|
 |[setAddress](#waveskitsetaddress)|Sets address|
@@ -151,7 +152,7 @@ Gets an address full balance
 **Description**
 
 ```php
-public base58Decode (string $data)
+public base58Decode (string $data, bool $useCache)
 ```
 
 Decodes data from base58 string 
@@ -162,6 +163,8 @@ Decodes data from base58 string
 
 * `(string) $data`
 : Base58 string  
+* `(bool) $useCache`
+: Use cache or not (default: true)  
 
 **Return Values**
 
@@ -1124,6 +1127,33 @@ Logs a message with a level
 `void`
 
 
+
+
+<hr />
+
+
+### WavesKit::nfts  
+
+**Description**
+
+```php
+public nfts (string|null $address)
+```
+
+Gets an address NFTs balance 
+
+ 
+
+**Parameters**
+
+* `(string|null) $address`
+: Address to get NFTs (default: null)  
+
+**Return Values**
+
+`array|int|false`
+
+> Balance of all NFTs as an array or FALSE on failure
 
 
 <hr />
