@@ -466,7 +466,8 @@ $t->pretest( "txMass (x$n)" );
     {
         for( $j = 0; $j < 3; ++$j )
         {
-            if( false !== ( $balance = $wk->balance( $recipients[$i] ) ) )
+            if( false !== ( $balance = $wk->balance( $recipients[$i] ) ) &&
+                isset( $balance[$tokenId]['balance'] ) )
                 break;
             sleep( 2 );
         }
