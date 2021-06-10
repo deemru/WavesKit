@@ -1,4 +1,4 @@
-name: PHP selftest
+name: PHP selftests
 
 on: [push]
 
@@ -8,20 +8,27 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
+        php-versions: ['7.4', '8.0']
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v1
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
 
     - name: Validate composer.json and composer.lock
       run: composer validate
 
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress --no-suggest
+    - name: Composer install
+      run: composer install
 
-    - name: Run selftest suite
+    - name: Composer test
       env:
         WAVESKIT_SEED: ${{ secrets.WAVESKIT_SEED }}
         WAVESKIT_NODES: ${{ secrets.WAVESKIT_NODES }}
-      run: composer run-script test --timeout=3600
+      run: composer test --timeout=3600
