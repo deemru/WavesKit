@@ -2287,7 +2287,10 @@ class WavesKit
                 if( $tx['version'] === 2 )
                 {
                     $dApp = new \Waves\Recipient;
-                    $dApp->setPublicKeyHash( substr( $this->base58Decode( $tx['dApp'] ), 2, 20 ) );
+                    if( $tx['dApp'][0] === '3' )
+                        $dApp->setPublicKeyHash( substr( $this->base58Decode( $tx['dApp'] ), 2, 20 ) );
+                    else
+                        $dApp->setAlias( substr( $tx['dApp'], 8 ) );
 
                     if( isset( $tx['call']['function'] ) )
                     {
@@ -2337,7 +2340,7 @@ class WavesKit
                 $body .= chr( 1 );
                 $body .= $this->getChainId();
                 $body .= $this->base58Decode( $tx['senderPublicKey'] );
-                $body .= $this->base58Decode( $tx['dApp'] );
+                $body .= $this->recipientAddressOrAliasBytes( $tx['dApp'] );
                 if( isset( $tx['call']['function'] ) )
                 {
                     $body .= chr( 1 ) . chr( 9 ) . chr( 1 );
