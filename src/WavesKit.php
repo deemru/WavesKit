@@ -1103,6 +1103,30 @@ class WavesKit
     }
 
     /**
+     * Validates a transaction
+     *
+     * @param  array $tx Transaction as an array
+     *
+     * @return array|false Validated transaction as an array or FALSE on failure
+     */
+    public function txValidate( $tx )
+    {
+        if( !isset( $tx['proofs'] ) )
+            $tx['proofs'] = [];
+
+        if( false === ( $json = $this->fetch( '/debug/validate', true, json_encode( $tx ) ) ) )
+            return false;
+
+        if( null === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        if( !isset( $json['valid'] ) )
+            return false;
+
+        return $json;
+    }
+
+    /**
      * Broadcasts a transaction
      *
      * @param  array $tx Transaction as an array

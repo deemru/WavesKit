@@ -84,6 +84,7 @@
 |[txSponsorship](#waveskittxsponsorship)|Makes sponsorship transaction as an array|
 |[txTransfer](#waveskittxtransfer)|Makes transfer transaction as an array|
 |[txUpdateAssetInfo](#waveskittxupdateassetinfo)|Makes update asset information transaction as an array|
+|[txValidate](#waveskittxvalidate)|Validates a transaction|
 |[verify](#waveskitverify)|Verifies a signature of a message by a public key|
 
 
@@ -2316,6 +2317,33 @@ Makes update asset information transaction as an array
 `array`
 
 > Update asset information transaction as an array or FALSE on failure
+
+
+<hr />
+
+
+### WavesKit::txValidate  
+
+**Description**
+
+```php
+public txValidate (array $tx)
+```
+
+Validates a transaction 
+
+ 
+
+**Parameters**
+
+* `(array) $tx`
+: Transaction as an array  
+
+**Return Values**
+
+`array|false`
+
+> Validated transaction as an array or FALSE on failure
 
 
 <hr />
