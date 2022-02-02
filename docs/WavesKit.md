@@ -52,6 +52,8 @@
 |[setCryptash](#waveskitsetcryptash)|Sets cryptash parameters|
 |[setLastBitFlip](#waveskitsetlastbitflip)|Sets last bit flip option|
 |[setLogFilter](#waveskitsetlogfilter)|Set filter specific messages|
+|[setMatcherFee](#waveskitsetmatcherfee)|Sets an order fee based on matcher settings|
+|[setMatcherSettings](#waveskitsetmatchersettings)|Sets matcher settings|
 |[setNodeAddress](#waveskitsetnodeaddress)|Sets node address with cache lifetime and backup node addresses|
 |[setPairsDatabase](#waveskitsetpairsdatabase)|Sets database pairs path|
 |[setPrivateKey](#waveskitsetprivatekey)|Sets private key|
@@ -1351,6 +1353,62 @@ Set filter specific messages
 `void`
 
 
+
+
+<hr />
+
+
+### WavesKit::setMatcherFee  
+
+**Description**
+
+```php
+public setMatcherFee (array $order, bool $discount)
+```
+
+Sets an order fee based on matcher settings 
+
+ 
+
+**Parameters**
+
+* `(array) $order`
+: Order as an array  
+* `(bool) $discount`
+: Use dicount asset (default: true)  
+
+**Return Values**
+
+`array|bool`
+
+> Order as an array or FALSE on failure
+
+
+<hr />
+
+
+### WavesKit::setMatcherSettings  
+
+**Description**
+
+```php
+public setMatcherSettings (array|null $settings)
+```
+
+Sets matcher settings 
+
+ 
+
+**Parameters**
+
+* `(array|null) $settings`
+: Matcher settings or NULL to get them on-the-fly (default: null)  
+
+**Return Values**
+
+`bool`
+
+> TRUE on success or FALSE on failure
 
 
 <hr />

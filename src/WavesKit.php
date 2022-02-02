@@ -725,6 +725,159 @@ class WavesKit
     }
 
     /**
+     * Sets matcher settings
+     *
+     * @param  array|null   $settings   Matcher settings or NULL to get them on-the-fly (default: null)
+     *
+     * @return bool TRUE on success or FALSE on failure
+     */
+    public function setMatcherSettings( $settings = null )
+    {
+        $this->setDefaultMatcher();
+
+        if( !isset( $settings ) )
+        {
+            $settings = $this->matcher->fetch( '/matcher/settings' );
+            if( $settings === false || false === ( $settings = $this->json_decode( $settings ) ) )
+                return false;
+        }
+
+        if( !isset( $settings['rates'] ) ||
+            !isset( $settings['orderFee']['composite']['default']['dynamic']['baseFee'] ) ||
+            !isset( $settings['orderFee']['composite']['custom'] ) ||
+            !isset( $settings['orderFee']['composite']['discount']['assetId'] ) ||
+            !isset( $settings['orderFee']['composite']['discount']['value'] ) )
+            return false;
+
+        $this->matcherBaseFee = $settings['orderFee']['composite']['default']['dynamic']['baseFee'];
+        $this->matcherDiscountAsset = $settings['orderFee']['composite']['discount']['assetId'];
+
+        $this->matcherRates = [];
+        foreach( $settings['rates'] as $asset => $rate )
+        {
+            $assetDecimals = $this->assetDecimals( $asset );
+            if( $assetDecimals === false )
+                return false;
+            $this->matcherRates[$asset] = $rate / $this->decimalize( 8 - $assetDecimals );
+        }
+
+        $this->matcherDiscountRate = $this->matcherRates[$this->matcherDiscountAsset] * ( ( 100 - $settings['orderFee']['composite']['discount']['value'] ) / 100 );
+
+        $this->matcherPairMinFees = [];
+        foreach( $settings['orderFee']['composite']['custom'] as $pair => $config )
+        {
+            if( !isset( $config['percent']['type'] ) ||
+                !isset( $config['percent']['minFee'] ) ||
+                !isset( $config['percent']['minFeeInWaves'] ) )
+                return false;
+
+            if( $config['percent']['type'] !== 'spending' ||
+                $config['percent']['minFeeInWaves'] !== $this->matcherBaseFee )
+                return false;
+
+            $this->matcherPairMinFees[$pair] = $config['percent']['minFee'] / 100;
+        }
+
+        return true;
+    }
+
+    private function assetDecimals( $asset )
+    {
+        if( $asset === 'WAVES' || $asset === null )
+            return 8;
+
+        static $db;
+        if( isset( $db[$asset] ) )
+            return $db[$asset];
+
+        $info = $this->fetch( '/assets/details/' . $asset );
+        if( $info === false || false === ( $info = $this->json_decode( $info ) ) || !isset( $info['decimals'] ) )
+            return false;
+
+        $db[$asset] = $info['decimals'];
+        return $info['decimals'];
+    }
+
+    private function assetId( $asset )
+    {
+        return isset( $asset ) ? $asset : 'WAVES';
+    }
+
+    private function decimalize( $n )
+    {
+        if( $n === 0 ) return 1;
+        if( $n === 1 ) return 10;
+        if( $n === 2 ) return 100;
+        if( $n === 3 ) return 1000;
+        if( $n === 4 ) return 10000;
+        if( $n === 5 ) return 100000;
+        if( $n === 6 ) return 1000000;
+        if( $n === 7 ) return 10000000;
+        return 100000000;
+    }
+
+    /**
+     * Sets an order fee based on matcher settings
+     *
+     * @param  array    $order      Order as an array
+     * @param  bool     $discount   Use dicount asset (default: true)
+     *
+     * @return array|bool Order as an array or FALSE on failure
+     */
+    public function setMatcherFee( $order, $discount = true )
+    {
+        $amountAsset = $this->assetId( $order['assetPair']['amountAsset'] );
+        $priceAsset = $this->assetId( $order['assetPair']['priceAsset'] );
+        $mainAsset = $order['orderType'] === 'sell' ? $amountAsset : $priceAsset;
+        $pair = $amountAsset . '-' . $priceAsset;
+
+        if( !isset( $this->matcherBaseFee ) && !$this->setMatcherSettings() )
+            return false;
+
+        if( isset( $this->matcherPairMinFees[$pair] ) )
+        {
+            $rate = $this->matcherRates[$mainAsset];
+
+            $fee = $order['amount'] * $this->matcherPairMinFees[$pair];
+            $fee /= $rate;
+            if( $fee < $this->matcherBaseFee )
+                $fee = $this->matcherBaseFee;
+
+            if( $discount )
+            {
+                $asset = $this->matcherDiscountAsset;
+                $rate = $this->matcherDiscountRate;
+            }
+            else
+            {
+                $asset = $mainAsset;
+                //$rate = $rate;
+            }
+        }
+        else
+        {
+            $fee = $this->matcherBaseFee;
+
+            if( $discount )
+            {
+                $asset = $this->matcherDiscountAsset;
+                $rate = $this->matcherDiscountRate;
+            }
+            else
+            {
+                $asset = null;
+                $rate = 1;
+            }
+        }
+
+        $fee *= $rate;
+        $order['matcherFee'] = (int)ceil( $fee );
+        $order['matcherFeeAssetId'] = $asset;
+
+        return $order;
+    }
+
+    /**
      * Fetches GET or POST response
      *
      * @param  string       $url            URL of request
@@ -1026,7 +1179,7 @@ class WavesKit
             !isset( $json['height'] ) )
         {
             if( isset( $this->curlSetBestOnError ) && $this->curlSetBestOnError > 0 )
-                $this->curlSetBestOnError++;                     
+                $this->curlSetBestOnError++;
 
             return false;
         }
@@ -1200,7 +1353,7 @@ class WavesKit
         }
         else
             return false;
-        
+
         if( false === ( $json = $this->matcher->fetch( '/matcher/orderbook/cancel', true, json_encode( $cancel ) ) ) )
             return false;
 
@@ -1751,7 +1904,7 @@ class WavesKit
         $this->setDefaultMatcher();
 
         $tx = [];
-        $tx['version'] = 2;
+        $tx['version'] = 3;
         $tx['sender'] = isset( $options['sender'] ) ? $options['sender'] : $this->getAddress();
         $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
         $tx['matcherPublicKey'] = isset( $options['matcherPublicKey'] ) ? $options['matcherPublicKey'] : $this->matcherPublicKey;
@@ -1762,6 +1915,7 @@ class WavesKit
         $tx['amount'] = $amount;
         $tx['price'] = $price;
         $tx['matcherFee'] = isset( $options['matcherFee'] ) ? $options['matcherFee'] : 300000;
+        $tx['matcherFeeAssetId'] = isset( $options['matcherFeeAssetId'] ) ? $options['matcherFeeAssetId'] : null;
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
         $tx['expiration'] = $tx['timestamp'] + $expiration;
         return $tx;
@@ -2138,7 +2292,7 @@ class WavesKit
 
         if( isset( $tx['orderType'] ) )
         {
-            $body .= chr( 2 );
+            $body .= chr( 3 );
             $body .= $this->base58Decode( $tx['senderPublicKey'] );
             $body .= $this->base58Decode( $tx['matcherPublicKey'] );
             $body .= isset( $tx['assetPair']['amountAsset'] ) ? chr( 1 ) . $this->base58Decode( $tx['assetPair']['amountAsset'] ) : chr( 0 );
@@ -2149,6 +2303,7 @@ class WavesKit
             $body .= pack( 'J', $tx['timestamp'] );
             $body .= pack( 'J', $tx['expiration'] );
             $body .= pack( 'J', $tx['matcherFee'] );
+            $body .= isset( $tx['matcherFeeAssetId'] ) ? chr( 1 ) . $this->base58Decode( $tx['matcherFeeAssetId'] ) : chr( 0 );
             return $body;
         }
 
