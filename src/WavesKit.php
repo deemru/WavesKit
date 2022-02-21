@@ -826,9 +826,10 @@ class WavesKit
      */
     public function setMatcherFee( $order, $discount = true )
     {
+        $isSell = $order['orderType'] === 'sell';
         $amountAsset = $this->assetId( $order['assetPair']['amountAsset'] );
         $priceAsset = $this->assetId( $order['assetPair']['priceAsset'] );
-        $mainAsset = $order['orderType'] === 'sell' ? $amountAsset : $priceAsset;
+        $mainAsset = $isSell ? $amountAsset : $priceAsset;
         $pair = $amountAsset . '-' . $priceAsset;
 
         if( !isset( $this->matcherBaseFee ) && !$this->setMatcherSettings() )
@@ -837,8 +838,9 @@ class WavesKit
         if( isset( $this->matcherPairMinFees[$pair] ) )
         {
             $rate = $this->matcherRates[$mainAsset];
+            $amount = $isSell ? $order['amount'] : fraction( $order['amount'], $order['price'], 100000000 );
 
-            $fee = $order['amount'] * $this->matcherPairMinFees[$pair];
+            $fee = $amount * $this->matcherPairMinFees[$pair];
             $fee /= $rate;
             if( $fee < $this->matcherBaseFee )
                 $fee = $this->matcherBaseFee;
