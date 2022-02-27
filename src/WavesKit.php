@@ -838,7 +838,7 @@ class WavesKit
         if( isset( $this->matcherPairMinFees[$pair] ) )
         {
             $rate = $this->matcherRates[$mainAsset];
-            $amount = $isSell ? $order['amount'] : fraction( $order['amount'], $order['price'], 100000000 );
+            $amount = $isSell ? $order['amount'] : ( $order['amount'] * $order['price'] / 100000000 );
 
             $fee = $amount * $this->matcherPairMinFees[$pair];
             $fee /= $rate;
