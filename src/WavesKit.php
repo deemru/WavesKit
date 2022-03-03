@@ -852,7 +852,7 @@ class WavesKit
             }
             else
             {
-                $asset = $mainAsset;
+                $asset = $mainAsset === 'WAVES' ? null : $mainAsset;
                 //$rate = $rate;
             }
         }
