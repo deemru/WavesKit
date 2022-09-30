@@ -1,6 +1,6 @@
 <?php
 
-namespace kornrunner;
+namespace deemru; // original @ kornrunner/keccak
 
 use Exception;
 use function mb_strlen;

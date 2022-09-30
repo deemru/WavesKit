@@ -182,7 +182,7 @@ class WavesKit
         if( !isset( $keccak ) )
         {
             require_once __DIR__ . '/../support/Keccak.php';
-            $keccak = new \kornrunner\Keccak();
+            $keccak = new \deemru\Keccak();
         }
 
         return $keccak->hash( $data, 256, true );
