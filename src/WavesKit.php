@@ -2131,6 +2131,9 @@ class WavesKit
         $data = [];
         foreach( $args as $value )
         {
+            if( isset( $value['list'] ) )
+                $data[] = [ 'type' => 'list', 'value' => $this->argsValuesToTxValues( $value['list'] ) ];
+            else
             if( is_array( $value ) )
                 $data[] = [ 'type' => 'binary', 'value' => $this->binToBase64Tx( $value[0] ) ];
             else
@@ -2209,6 +2212,14 @@ class WavesKit
         }
     }
 
+    private function getArgsRecordBody( $args )
+    {
+        $body = pack( 'N', count( $args ) );
+        foreach( $args as $rec )
+            $body .= $this->getArgRecordBody( $rec );
+        return $body;
+    }
+
     private function getArgRecordBody( $rec )
     {
         $type = $rec['type'];
@@ -2216,6 +2227,8 @@ class WavesKit
 
         switch( $type )
         {
+            case 'list':
+                return chr( 11 ) . $this->getArgsRecordBody( $value );
             case 'integer':
                 return chr( 0 ) . pack( 'J', $value );
             case 'binary':
@@ -2478,9 +2491,7 @@ class WavesKit
                     {
                         $body .= chr( 1 ) . chr( 9 ) . chr( 1 );
                         $body .= pack( 'N', strlen( $tx['call']['function'] ) ) . $tx['call']['function'];
-                        $body .= pack( 'N', count( $tx['call']['args'] ) );
-                        foreach( $tx['call']['args'] as $rec )
-                            $body .= $this->getArgRecordBody( $rec );
+                        $body .= $this->getArgsRecordBody( $tx['call']['args'] );
                     }
                     else
                     {
@@ -2527,9 +2538,7 @@ class WavesKit
                 {
                     $body .= chr( 1 ) . chr( 9 ) . chr( 1 );
                     $body .= pack( 'N', strlen( $tx['call']['function'] ) ) . $tx['call']['function'];
-                    $body .= pack( 'N', count( $tx['call']['args'] ) );
-                    foreach( $tx['call']['args'] as $rec )
-                        $body .= $this->getArgRecordBody( $rec );
+                    $body .= $this->getArgsRecordBody( $tx['call']['args'] );
                 }
                 else
                 {

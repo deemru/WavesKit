@@ -636,8 +636,8 @@ $t->pretest( 'txInvokeScript (return Waves)' );
     [
         $wkFaucet->getAddress(),
         1,
-        [ $wk->sha256( $wkFaucet->getAddress() ) ],
-        true,
+        [ '' ],
+        [ 'list' => [ 'one', 'ii', '3' ] ],
     ];
     $payments =
     [
@@ -647,7 +647,7 @@ $t->pretest( 'txInvokeScript (return Waves)' );
         ],
     ];
 
-    $tx = $wk->txInvokeScript( '3N7uoMNjqNt1jf9q9f9BSr7ASk1QtzJABEY', 'retransmit', $args, $payments );
+    $tx = $wk->txInvokeScript( '3MsABb4zvG6U2gczxt7y91XSzGGuZzmLxsi', 'retransmit', $args, $payments );
     $tx['version'] = 2;
     $tx = $wk->txSign( $tx );
     $tx = $wk->txBroadcast( $tx );
