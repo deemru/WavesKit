@@ -637,6 +637,7 @@ $t->pretest( 'txInvokeScript (return Waves)' );
         $wkFaucet->getAddress(),
         1,
         [ '' ],
+        false,
         [ 'list' => [ 'one', 'ii', '3' ] ],
     ];
     $payments =
