@@ -34,11 +34,11 @@ class SponsorFee extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.Amount min_fee = 1;</code>
-     * @return \Waves\Amount
+     * @return \Waves\Amount|null
      */
     public function getMinFee()
     {
-        return isset($this->min_fee) ? $this->min_fee : null;
+        return $this->min_fee;
     }
 
     public function hasMinFee()

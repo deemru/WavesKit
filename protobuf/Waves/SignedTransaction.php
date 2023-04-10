@@ -14,13 +14,10 @@ use Google\Protobuf\Internal\GPBUtil;
 class SignedTransaction extends \Google\Protobuf\Internal\Message
 {
     /**
-     * Generated from protobuf field <code>.waves.Transaction transaction = 1;</code>
-     */
-    protected $transaction = null;
-    /**
      * Generated from protobuf field <code>repeated bytes proofs = 2;</code>
      */
     private $proofs;
+    protected $transaction;
 
     /**
      * Constructor.
@@ -28,8 +25,9 @@ class SignedTransaction extends \Google\Protobuf\Internal\Message
      * @param array $data {
      *     Optional. Data for populating the Message object.
      *
-     *     @type \Waves\Transaction $transaction
-     *     @type string[]|\Google\Protobuf\Internal\RepeatedField $proofs
+     *     @type \Waves\Transaction $waves_transaction
+     *     @type string $ethereum_transaction
+     *     @type array<string>|\Google\Protobuf\Internal\RepeatedField $proofs
      * }
      */
     public function __construct($data = NULL) {
@@ -38,33 +36,55 @@ class SignedTransaction extends \Google\Protobuf\Internal\Message
     }
 
     /**
-     * Generated from protobuf field <code>.waves.Transaction transaction = 1;</code>
-     * @return \Waves\Transaction
+     * Generated from protobuf field <code>.waves.Transaction waves_transaction = 1;</code>
+     * @return \Waves\Transaction|null
      */
-    public function getTransaction()
+    public function getWavesTransaction()
     {
-        return isset($this->transaction) ? $this->transaction : null;
+        return $this->readOneof(1);
     }
 
-    public function hasTransaction()
+    public function hasWavesTransaction()
     {
-        return isset($this->transaction);
-    }
-
-    public function clearTransaction()
-    {
-        unset($this->transaction);
+        return $this->hasOneof(1);
     }
 
     /**
-     * Generated from protobuf field <code>.waves.Transaction transaction = 1;</code>
+     * Generated from protobuf field <code>.waves.Transaction waves_transaction = 1;</code>
      * @param \Waves\Transaction $var
      * @return $this
      */
-    public function setTransaction($var)
+    public function setWavesTransaction($var)
     {
         GPBUtil::checkMessage($var, \Waves\Transaction::class);
-        $this->transaction = $var;
+        $this->writeOneof(1, $var);
+
+        return $this;
+    }
+
+    /**
+     * Generated from protobuf field <code>bytes ethereum_transaction = 3;</code>
+     * @return string
+     */
+    public function getEthereumTransaction()
+    {
+        return $this->readOneof(3);
+    }
+
+    public function hasEthereumTransaction()
+    {
+        return $this->hasOneof(3);
+    }
+
+    /**
+     * Generated from protobuf field <code>bytes ethereum_transaction = 3;</code>
+     * @param string $var
+     * @return $this
+     */
+    public function setEthereumTransaction($var)
+    {
+        GPBUtil::checkString($var, False);
+        $this->writeOneof(3, $var);
 
         return $this;
     }
@@ -80,7 +100,7 @@ class SignedTransaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>repeated bytes proofs = 2;</code>
-     * @param string[]|\Google\Protobuf\Internal\RepeatedField $var
+     * @param array<string>|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setProofs($var)
@@ -89,6 +109,14 @@ class SignedTransaction extends \Google\Protobuf\Internal\Message
         $this->proofs = $arr;
 
         return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTransaction()
+    {
+        return $this->whichOneof("transaction");
     }
 
 }

@@ -41,6 +41,18 @@ class InvokeScriptResult extends \Google\Protobuf\Internal\Message
      * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.SponsorFee sponsor_fees = 7;</code>
      */
     private $sponsor_fees;
+    /**
+     * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.Lease leases = 8;</code>
+     */
+    private $leases;
+    /**
+     * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.LeaseCancel lease_cancels = 9;</code>
+     */
+    private $lease_cancels;
+    /**
+     * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.Invocation invokes = 10;</code>
+     */
+    private $invokes;
 
     /**
      * Constructor.
@@ -48,13 +60,16 @@ class InvokeScriptResult extends \Google\Protobuf\Internal\Message
      * @param array $data {
      *     Optional. Data for populating the Message object.
      *
-     *     @type \Waves\DataTransactionData\DataEntry[]|\Google\Protobuf\Internal\RepeatedField $data
-     *     @type \Waves\InvokeScriptResult\Payment[]|\Google\Protobuf\Internal\RepeatedField $transfers
-     *     @type \Waves\InvokeScriptResult\Issue[]|\Google\Protobuf\Internal\RepeatedField $issues
-     *     @type \Waves\InvokeScriptResult\Reissue[]|\Google\Protobuf\Internal\RepeatedField $reissues
-     *     @type \Waves\InvokeScriptResult\Burn[]|\Google\Protobuf\Internal\RepeatedField $burns
+     *     @type array<\Waves\DataTransactionData\DataEntry>|\Google\Protobuf\Internal\RepeatedField $data
+     *     @type array<\Waves\InvokeScriptResult\Payment>|\Google\Protobuf\Internal\RepeatedField $transfers
+     *     @type array<\Waves\InvokeScriptResult\Issue>|\Google\Protobuf\Internal\RepeatedField $issues
+     *     @type array<\Waves\InvokeScriptResult\Reissue>|\Google\Protobuf\Internal\RepeatedField $reissues
+     *     @type array<\Waves\InvokeScriptResult\Burn>|\Google\Protobuf\Internal\RepeatedField $burns
      *     @type \Waves\InvokeScriptResult\ErrorMessage $error_message
-     *     @type \Waves\InvokeScriptResult\SponsorFee[]|\Google\Protobuf\Internal\RepeatedField $sponsor_fees
+     *     @type array<\Waves\InvokeScriptResult\SponsorFee>|\Google\Protobuf\Internal\RepeatedField $sponsor_fees
+     *     @type array<\Waves\InvokeScriptResult\Lease>|\Google\Protobuf\Internal\RepeatedField $leases
+     *     @type array<\Waves\InvokeScriptResult\LeaseCancel>|\Google\Protobuf\Internal\RepeatedField $lease_cancels
+     *     @type array<\Waves\InvokeScriptResult\Invocation>|\Google\Protobuf\Internal\RepeatedField $invokes
      * }
      */
     public function __construct($data = NULL) {
@@ -73,7 +88,7 @@ class InvokeScriptResult extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>repeated .waves.DataTransactionData.DataEntry data = 1;</code>
-     * @param \Waves\DataTransactionData\DataEntry[]|\Google\Protobuf\Internal\RepeatedField $var
+     * @param array<\Waves\DataTransactionData\DataEntry>|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setData($var)
@@ -95,7 +110,7 @@ class InvokeScriptResult extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.Payment transfers = 2;</code>
-     * @param \Waves\InvokeScriptResult\Payment[]|\Google\Protobuf\Internal\RepeatedField $var
+     * @param array<\Waves\InvokeScriptResult\Payment>|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setTransfers($var)
@@ -117,7 +132,7 @@ class InvokeScriptResult extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.Issue issues = 3;</code>
-     * @param \Waves\InvokeScriptResult\Issue[]|\Google\Protobuf\Internal\RepeatedField $var
+     * @param array<\Waves\InvokeScriptResult\Issue>|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setIssues($var)
@@ -139,7 +154,7 @@ class InvokeScriptResult extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.Reissue reissues = 4;</code>
-     * @param \Waves\InvokeScriptResult\Reissue[]|\Google\Protobuf\Internal\RepeatedField $var
+     * @param array<\Waves\InvokeScriptResult\Reissue>|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setReissues($var)
@@ -161,7 +176,7 @@ class InvokeScriptResult extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.Burn burns = 5;</code>
-     * @param \Waves\InvokeScriptResult\Burn[]|\Google\Protobuf\Internal\RepeatedField $var
+     * @param array<\Waves\InvokeScriptResult\Burn>|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setBurns($var)
@@ -174,11 +189,11 @@ class InvokeScriptResult extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.InvokeScriptResult.ErrorMessage error_message = 6;</code>
-     * @return \Waves\InvokeScriptResult\ErrorMessage
+     * @return \Waves\InvokeScriptResult\ErrorMessage|null
      */
     public function getErrorMessage()
     {
-        return isset($this->error_message) ? $this->error_message : null;
+        return $this->error_message;
     }
 
     public function hasErrorMessage()
@@ -215,13 +230,79 @@ class InvokeScriptResult extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.SponsorFee sponsor_fees = 7;</code>
-     * @param \Waves\InvokeScriptResult\SponsorFee[]|\Google\Protobuf\Internal\RepeatedField $var
+     * @param array<\Waves\InvokeScriptResult\SponsorFee>|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setSponsorFees($var)
     {
         $arr = GPBUtil::checkRepeatedField($var, \Google\Protobuf\Internal\GPBType::MESSAGE, \Waves\InvokeScriptResult\SponsorFee::class);
         $this->sponsor_fees = $arr;
+
+        return $this;
+    }
+
+    /**
+     * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.Lease leases = 8;</code>
+     * @return \Google\Protobuf\Internal\RepeatedField
+     */
+    public function getLeases()
+    {
+        return $this->leases;
+    }
+
+    /**
+     * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.Lease leases = 8;</code>
+     * @param array<\Waves\InvokeScriptResult\Lease>|\Google\Protobuf\Internal\RepeatedField $var
+     * @return $this
+     */
+    public function setLeases($var)
+    {
+        $arr = GPBUtil::checkRepeatedField($var, \Google\Protobuf\Internal\GPBType::MESSAGE, \Waves\InvokeScriptResult\Lease::class);
+        $this->leases = $arr;
+
+        return $this;
+    }
+
+    /**
+     * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.LeaseCancel lease_cancels = 9;</code>
+     * @return \Google\Protobuf\Internal\RepeatedField
+     */
+    public function getLeaseCancels()
+    {
+        return $this->lease_cancels;
+    }
+
+    /**
+     * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.LeaseCancel lease_cancels = 9;</code>
+     * @param array<\Waves\InvokeScriptResult\LeaseCancel>|\Google\Protobuf\Internal\RepeatedField $var
+     * @return $this
+     */
+    public function setLeaseCancels($var)
+    {
+        $arr = GPBUtil::checkRepeatedField($var, \Google\Protobuf\Internal\GPBType::MESSAGE, \Waves\InvokeScriptResult\LeaseCancel::class);
+        $this->lease_cancels = $arr;
+
+        return $this;
+    }
+
+    /**
+     * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.Invocation invokes = 10;</code>
+     * @return \Google\Protobuf\Internal\RepeatedField
+     */
+    public function getInvokes()
+    {
+        return $this->invokes;
+    }
+
+    /**
+     * Generated from protobuf field <code>repeated .waves.InvokeScriptResult.Invocation invokes = 10;</code>
+     * @param array<\Waves\InvokeScriptResult\Invocation>|\Google\Protobuf\Internal\RepeatedField $var
+     * @return $this
+     */
+    public function setInvokes($var)
+    {
+        $arr = GPBUtil::checkRepeatedField($var, \Google\Protobuf\Internal\GPBType::MESSAGE, \Waves\InvokeScriptResult\Invocation::class);
+        $this->invokes = $arr;
 
         return $this;
     }

@@ -64,7 +64,7 @@ class Header extends \Google\Protobuf\Internal\Message
      *     @type string $reference
      *     @type int|string $base_target
      *     @type string $generation_signature
-     *     @type int[]|\Google\Protobuf\Internal\RepeatedField $feature_votes
+     *     @type array<int>|\Google\Protobuf\Internal\RepeatedField $feature_votes
      *     @type int|string $timestamp
      *     @type int $version
      *     @type string $generator
@@ -176,7 +176,7 @@ class Header extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>repeated uint32 feature_votes = 5;</code>
-     * @param int[]|\Google\Protobuf\Internal\RepeatedField $var
+     * @param array<int>|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setFeatureVotes($var)

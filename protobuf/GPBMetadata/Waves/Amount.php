@@ -14,9 +14,15 @@ class Amount
         if (static::$is_initialized == true) {
           return;
         }
-        $pool->internalAddGeneratedFile(hex2bin(
-            "0ab0010a1277617665732f616d6f756e742e70726f746f12057761766573222a0a06416d6f756e7412100a0861737365745f696418012001280c120e0a06616d6f756e74180220012803425f0a1a636f6d2e7761766573706c6174666f726d2e70726f746f6275665a396769746875622e636f6d2f7761766573706c6174666f726d2f676f77617665732f706b672f677270632f67656e6572617465642f7761766573aa02055761766573620670726f746f33"
-        ), true);
+        $pool->internalAddGeneratedFile(
+            '
+°
+waves/amount.protowaves"*
+Amount
+asset_id (
+amount (B_
+com.wavesplatform.protobufZ9github.com/wavesplatform/gowaves/pkg/grpc/generated/wavesªWavesbproto3'
+        , true);
 
         static::$is_initialized = true;
     }

@@ -33,7 +33,7 @@ class MassTransferTransactionData extends \Google\Protobuf\Internal\Message
      *     Optional. Data for populating the Message object.
      *
      *     @type string $asset_id
-     *     @type \Waves\MassTransferTransactionData\Transfer[]|\Google\Protobuf\Internal\RepeatedField $transfers
+     *     @type array<\Waves\MassTransferTransactionData\Transfer>|\Google\Protobuf\Internal\RepeatedField $transfers
      *     @type string $attachment
      * }
      */
@@ -75,7 +75,7 @@ class MassTransferTransactionData extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>repeated .waves.MassTransferTransactionData.Transfer transfers = 2;</code>
-     * @param \Waves\MassTransferTransactionData\Transfer[]|\Google\Protobuf\Internal\RepeatedField $var
+     * @param array<\Waves\MassTransferTransactionData\Transfer>|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setTransfers($var)

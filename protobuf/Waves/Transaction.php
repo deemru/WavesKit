@@ -63,6 +63,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
      *     @type \Waves\SetAssetScriptTransactionData $set_asset_script
      *     @type \Waves\InvokeScriptTransactionData $invoke_script
      *     @type \Waves\UpdateAssetInfoTransactionData $update_asset_info
+     *     @type \Waves\InvokeExpressionTransactionData $invoke_expression
      * }
      */
     public function __construct($data = NULL) {
@@ -116,11 +117,11 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.Amount fee = 3;</code>
-     * @return \Waves\Amount
+     * @return \Waves\Amount|null
      */
     public function getFee()
     {
-        return isset($this->fee) ? $this->fee : null;
+        return $this->fee;
     }
 
     public function hasFee()
@@ -192,7 +193,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.GenesisTransactionData genesis = 101;</code>
-     * @return \Waves\GenesisTransactionData
+     * @return \Waves\GenesisTransactionData|null
      */
     public function getGenesis()
     {
@@ -219,7 +220,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.PaymentTransactionData payment = 102;</code>
-     * @return \Waves\PaymentTransactionData
+     * @return \Waves\PaymentTransactionData|null
      */
     public function getPayment()
     {
@@ -246,7 +247,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.IssueTransactionData issue = 103;</code>
-     * @return \Waves\IssueTransactionData
+     * @return \Waves\IssueTransactionData|null
      */
     public function getIssue()
     {
@@ -273,7 +274,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.TransferTransactionData transfer = 104;</code>
-     * @return \Waves\TransferTransactionData
+     * @return \Waves\TransferTransactionData|null
      */
     public function getTransfer()
     {
@@ -300,7 +301,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.ReissueTransactionData reissue = 105;</code>
-     * @return \Waves\ReissueTransactionData
+     * @return \Waves\ReissueTransactionData|null
      */
     public function getReissue()
     {
@@ -327,7 +328,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.BurnTransactionData burn = 106;</code>
-     * @return \Waves\BurnTransactionData
+     * @return \Waves\BurnTransactionData|null
      */
     public function getBurn()
     {
@@ -354,7 +355,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.ExchangeTransactionData exchange = 107;</code>
-     * @return \Waves\ExchangeTransactionData
+     * @return \Waves\ExchangeTransactionData|null
      */
     public function getExchange()
     {
@@ -381,7 +382,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.LeaseTransactionData lease = 108;</code>
-     * @return \Waves\LeaseTransactionData
+     * @return \Waves\LeaseTransactionData|null
      */
     public function getLease()
     {
@@ -408,7 +409,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.LeaseCancelTransactionData lease_cancel = 109;</code>
-     * @return \Waves\LeaseCancelTransactionData
+     * @return \Waves\LeaseCancelTransactionData|null
      */
     public function getLeaseCancel()
     {
@@ -435,7 +436,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.CreateAliasTransactionData create_alias = 110;</code>
-     * @return \Waves\CreateAliasTransactionData
+     * @return \Waves\CreateAliasTransactionData|null
      */
     public function getCreateAlias()
     {
@@ -462,7 +463,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.MassTransferTransactionData mass_transfer = 111;</code>
-     * @return \Waves\MassTransferTransactionData
+     * @return \Waves\MassTransferTransactionData|null
      */
     public function getMassTransfer()
     {
@@ -489,7 +490,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.DataTransactionData data_transaction = 112;</code>
-     * @return \Waves\DataTransactionData
+     * @return \Waves\DataTransactionData|null
      */
     public function getDataTransaction()
     {
@@ -516,7 +517,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.SetScriptTransactionData set_script = 113;</code>
-     * @return \Waves\SetScriptTransactionData
+     * @return \Waves\SetScriptTransactionData|null
      */
     public function getSetScript()
     {
@@ -543,7 +544,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.SponsorFeeTransactionData sponsor_fee = 114;</code>
-     * @return \Waves\SponsorFeeTransactionData
+     * @return \Waves\SponsorFeeTransactionData|null
      */
     public function getSponsorFee()
     {
@@ -570,7 +571,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.SetAssetScriptTransactionData set_asset_script = 115;</code>
-     * @return \Waves\SetAssetScriptTransactionData
+     * @return \Waves\SetAssetScriptTransactionData|null
      */
     public function getSetAssetScript()
     {
@@ -597,7 +598,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.InvokeScriptTransactionData invoke_script = 116;</code>
-     * @return \Waves\InvokeScriptTransactionData
+     * @return \Waves\InvokeScriptTransactionData|null
      */
     public function getInvokeScript()
     {
@@ -624,7 +625,7 @@ class Transaction extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.UpdateAssetInfoTransactionData update_asset_info = 117;</code>
-     * @return \Waves\UpdateAssetInfoTransactionData
+     * @return \Waves\UpdateAssetInfoTransactionData|null
      */
     public function getUpdateAssetInfo()
     {
@@ -645,6 +646,33 @@ class Transaction extends \Google\Protobuf\Internal\Message
     {
         GPBUtil::checkMessage($var, \Waves\UpdateAssetInfoTransactionData::class);
         $this->writeOneof(117, $var);
+
+        return $this;
+    }
+
+    /**
+     * Generated from protobuf field <code>.waves.InvokeExpressionTransactionData invoke_expression = 119;</code>
+     * @return \Waves\InvokeExpressionTransactionData|null
+     */
+    public function getInvokeExpression()
+    {
+        return $this->readOneof(119);
+    }
+
+    public function hasInvokeExpression()
+    {
+        return $this->hasOneof(119);
+    }
+
+    /**
+     * Generated from protobuf field <code>.waves.InvokeExpressionTransactionData invoke_expression = 119;</code>
+     * @param \Waves\InvokeExpressionTransactionData $var
+     * @return $this
+     */
+    public function setInvokeExpression($var)
+    {
+        GPBUtil::checkMessage($var, \Waves\InvokeExpressionTransactionData::class);
+        $this->writeOneof(119, $var);
 
         return $this;
     }

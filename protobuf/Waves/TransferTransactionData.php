@@ -44,11 +44,11 @@ class TransferTransactionData extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.Recipient recipient = 1;</code>
-     * @return \Waves\Recipient
+     * @return \Waves\Recipient|null
      */
     public function getRecipient()
     {
-        return isset($this->recipient) ? $this->recipient : null;
+        return $this->recipient;
     }
 
     public function hasRecipient()
@@ -76,11 +76,11 @@ class TransferTransactionData extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.Amount amount = 2;</code>
-     * @return \Waves\Amount
+     * @return \Waves\Amount|null
      */
     public function getAmount()
     {
-        return isset($this->amount) ? $this->amount : null;
+        return $this->amount;
     }
 
     public function hasAmount()

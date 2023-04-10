@@ -1,6 +1,6 @@
 cd /d %~dp0..
-set PROTOC_VERSION=3.13.0
-set PROTO_WAVES_VERSION=1.2.6
+set PROTOC_VERSION=22.2
+set PROTO_WAVES_VERSION=1.4.4
 
 set PROTOC_URL=https://github.com/protocolbuffers/protobuf/releases/download/v%PROTOC_VERSION%/
 set PROTOC_ARCH=protoc-%PROTOC_VERSION%-win32.zip

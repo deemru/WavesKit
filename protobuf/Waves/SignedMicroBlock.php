@@ -44,11 +44,11 @@ class SignedMicroBlock extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.MicroBlock micro_block = 1;</code>
-     * @return \Waves\MicroBlock
+     * @return \Waves\MicroBlock|null
      */
     public function getMicroBlock()
     {
-        return isset($this->micro_block) ? $this->micro_block : null;
+        return $this->micro_block;
     }
 
     public function hasMicroBlock()

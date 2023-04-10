@@ -44,7 +44,7 @@ class ExchangeTransactionData extends \Google\Protobuf\Internal\Message
      *     @type int|string $price
      *     @type int|string $buy_matcher_fee
      *     @type int|string $sell_matcher_fee
-     *     @type \Waves\Order[]|\Google\Protobuf\Internal\RepeatedField $orders
+     *     @type array<\Waves\Order>|\Google\Protobuf\Internal\RepeatedField $orders
      * }
      */
     public function __construct($data = NULL) {
@@ -151,7 +151,7 @@ class ExchangeTransactionData extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>repeated .waves.Order orders = 5;</code>
-     * @param \Waves\Order[]|\Google\Protobuf\Internal\RepeatedField $var
+     * @param array<\Waves\Order>|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setOrders($var)

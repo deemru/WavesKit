@@ -34,7 +34,7 @@ class InvokeScriptTransactionData extends \Google\Protobuf\Internal\Message
      *
      *     @type \Waves\Recipient $d_app
      *     @type string $function_call
-     *     @type \Waves\Amount[]|\Google\Protobuf\Internal\RepeatedField $payments
+     *     @type array<\Waves\Amount>|\Google\Protobuf\Internal\RepeatedField $payments
      * }
      */
     public function __construct($data = NULL) {
@@ -44,11 +44,11 @@ class InvokeScriptTransactionData extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.Recipient d_app = 1;</code>
-     * @return \Waves\Recipient
+     * @return \Waves\Recipient|null
      */
     public function getDApp()
     {
-        return isset($this->d_app) ? $this->d_app : null;
+        return $this->d_app;
     }
 
     public function hasDApp()
@@ -107,7 +107,7 @@ class InvokeScriptTransactionData extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>repeated .waves.Amount payments = 3;</code>
-     * @param \Waves\Amount[]|\Google\Protobuf\Internal\RepeatedField $var
+     * @param array<\Waves\Amount>|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setPayments($var)

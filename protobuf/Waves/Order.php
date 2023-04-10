@@ -18,10 +18,6 @@ class Order extends \Google\Protobuf\Internal\Message
      */
     protected $chain_id = 0;
     /**
-     * Generated from protobuf field <code>bytes sender_public_key = 2;</code>
-     */
-    protected $sender_public_key = '';
-    /**
      * Generated from protobuf field <code>bytes matcher_public_key = 3;</code>
      */
     protected $matcher_public_key = '';
@@ -61,6 +57,11 @@ class Order extends \Google\Protobuf\Internal\Message
      * Generated from protobuf field <code>repeated bytes proofs = 12;</code>
      */
     private $proofs;
+    /**
+     * Generated from protobuf field <code>.waves.Order.PriceMode price_mode = 14;</code>
+     */
+    protected $price_mode = 0;
+    protected $sender;
 
     /**
      * Constructor.
@@ -69,7 +70,6 @@ class Order extends \Google\Protobuf\Internal\Message
      *     Optional. Data for populating the Message object.
      *
      *     @type int $chain_id
-     *     @type string $sender_public_key
      *     @type string $matcher_public_key
      *     @type \Waves\AssetPair $asset_pair
      *     @type int $order_side
@@ -79,7 +79,10 @@ class Order extends \Google\Protobuf\Internal\Message
      *     @type int|string $expiration
      *     @type \Waves\Amount $matcher_fee
      *     @type int $version
-     *     @type string[]|\Google\Protobuf\Internal\RepeatedField $proofs
+     *     @type array<string>|\Google\Protobuf\Internal\RepeatedField $proofs
+     *     @type int $price_mode
+     *     @type string $sender_public_key
+     *     @type string $eip712_signature
      * }
      */
     public function __construct($data = NULL) {
@@ -110,28 +113,6 @@ class Order extends \Google\Protobuf\Internal\Message
     }
 
     /**
-     * Generated from protobuf field <code>bytes sender_public_key = 2;</code>
-     * @return string
-     */
-    public function getSenderPublicKey()
-    {
-        return $this->sender_public_key;
-    }
-
-    /**
-     * Generated from protobuf field <code>bytes sender_public_key = 2;</code>
-     * @param string $var
-     * @return $this
-     */
-    public function setSenderPublicKey($var)
-    {
-        GPBUtil::checkString($var, False);
-        $this->sender_public_key = $var;
-
-        return $this;
-    }
-
-    /**
      * Generated from protobuf field <code>bytes matcher_public_key = 3;</code>
      * @return string
      */
@@ -155,11 +136,11 @@ class Order extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.AssetPair asset_pair = 4;</code>
-     * @return \Waves\AssetPair
+     * @return \Waves\AssetPair|null
      */
     public function getAssetPair()
     {
-        return isset($this->asset_pair) ? $this->asset_pair : null;
+        return $this->asset_pair;
     }
 
     public function hasAssetPair()
@@ -297,11 +278,11 @@ class Order extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.Amount matcher_fee = 10;</code>
-     * @return \Waves\Amount
+     * @return \Waves\Amount|null
      */
     public function getMatcherFee()
     {
-        return isset($this->matcher_fee) ? $this->matcher_fee : null;
+        return $this->matcher_fee;
     }
 
     public function hasMatcherFee()
@@ -360,7 +341,7 @@ class Order extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>repeated bytes proofs = 12;</code>
-     * @param string[]|\Google\Protobuf\Internal\RepeatedField $var
+     * @param array<string>|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setProofs($var)
@@ -369,6 +350,90 @@ class Order extends \Google\Protobuf\Internal\Message
         $this->proofs = $arr;
 
         return $this;
+    }
+
+    /**
+     * Generated from protobuf field <code>.waves.Order.PriceMode price_mode = 14;</code>
+     * @return int
+     */
+    public function getPriceMode()
+    {
+        return $this->price_mode;
+    }
+
+    /**
+     * Generated from protobuf field <code>.waves.Order.PriceMode price_mode = 14;</code>
+     * @param int $var
+     * @return $this
+     */
+    public function setPriceMode($var)
+    {
+        GPBUtil::checkEnum($var, \Waves\Order\PriceMode::class);
+        $this->price_mode = $var;
+
+        return $this;
+    }
+
+    /**
+     * Generated from protobuf field <code>bytes sender_public_key = 2;</code>
+     * @return string
+     */
+    public function getSenderPublicKey()
+    {
+        return $this->readOneof(2);
+    }
+
+    public function hasSenderPublicKey()
+    {
+        return $this->hasOneof(2);
+    }
+
+    /**
+     * Generated from protobuf field <code>bytes sender_public_key = 2;</code>
+     * @param string $var
+     * @return $this
+     */
+    public function setSenderPublicKey($var)
+    {
+        GPBUtil::checkString($var, False);
+        $this->writeOneof(2, $var);
+
+        return $this;
+    }
+
+    /**
+     * Generated from protobuf field <code>bytes eip712_signature = 13;</code>
+     * @return string
+     */
+    public function getEip712Signature()
+    {
+        return $this->readOneof(13);
+    }
+
+    public function hasEip712Signature()
+    {
+        return $this->hasOneof(13);
+    }
+
+    /**
+     * Generated from protobuf field <code>bytes eip712_signature = 13;</code>
+     * @param string $var
+     * @return $this
+     */
+    public function setEip712Signature($var)
+    {
+        GPBUtil::checkString($var, False);
+        $this->writeOneof(13, $var);
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getSender()
+    {
+        return $this->whichOneof("sender");
     }
 
 }

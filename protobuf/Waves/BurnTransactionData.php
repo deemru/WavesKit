@@ -34,11 +34,11 @@ class BurnTransactionData extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.Amount asset_amount = 1;</code>
-     * @return \Waves\Amount
+     * @return \Waves\Amount|null
      */
     public function getAssetAmount()
     {
-        return isset($this->asset_amount) ? $this->asset_amount : null;
+        return $this->asset_amount;
     }
 
     public function hasAssetAmount()

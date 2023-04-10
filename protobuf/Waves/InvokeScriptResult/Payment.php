@@ -61,11 +61,11 @@ class Payment extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.Amount amount = 2;</code>
-     * @return \Waves\Amount
+     * @return \Waves\Amount|null
      */
     public function getAmount()
     {
-        return isset($this->amount) ? $this->amount : null;
+        return $this->amount;
     }
 
     public function hasAmount()

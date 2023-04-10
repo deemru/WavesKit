@@ -34,7 +34,7 @@ class Block extends \Google\Protobuf\Internal\Message
      *
      *     @type \Waves\Block\Header $header
      *     @type string $signature
-     *     @type \Waves\SignedTransaction[]|\Google\Protobuf\Internal\RepeatedField $transactions
+     *     @type array<\Waves\SignedTransaction>|\Google\Protobuf\Internal\RepeatedField $transactions
      * }
      */
     public function __construct($data = NULL) {
@@ -44,11 +44,11 @@ class Block extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.Block.Header header = 1;</code>
-     * @return \Waves\Block\Header
+     * @return \Waves\Block\Header|null
      */
     public function getHeader()
     {
-        return isset($this->header) ? $this->header : null;
+        return $this->header;
     }
 
     public function hasHeader()
@@ -107,7 +107,7 @@ class Block extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>repeated .waves.SignedTransaction transactions = 3;</code>
-     * @param \Waves\SignedTransaction[]|\Google\Protobuf\Internal\RepeatedField $var
+     * @param array<\Waves\SignedTransaction>|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setTransactions($var)

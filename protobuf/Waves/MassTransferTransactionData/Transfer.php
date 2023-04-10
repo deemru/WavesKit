@@ -39,11 +39,11 @@ class Transfer extends \Google\Protobuf\Internal\Message
 
     /**
      * Generated from protobuf field <code>.waves.Recipient recipient = 1;</code>
-     * @return \Waves\Recipient
+     * @return \Waves\Recipient|null
      */
     public function getRecipient()
     {
-        return isset($this->recipient) ? $this->recipient : null;
+        return $this->recipient;
     }
 
     public function hasRecipient()
