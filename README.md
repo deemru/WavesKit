@@ -1,6 +1,6 @@
 # WavesKit
 
-[![packagist](https://img.shields.io/packagist/v/deemru/waveskit.svg)](https://packagist.org/packages/deemru/waveskit) [![php-v](https://img.shields.io/packagist/php-v/deemru/waveskit.svg)](https://packagist.org/packages/deemru/waveskit) [![GitHub](https://img.shields.io/github/actions/workflow/status/deemru/WavesKit/php.yml?label=github%20actions)](https://github.com/deemru/WavesKit/actions/workflows/php.yml) [![codacy](https://img.shields.io/codacy/grade/439e2cedcdaf4091be29b7b1755e7c16.svg?label=codacy)](https://app.codacy.com/project/deemru/WavesKit/dashboard) [![license](https://img.shields.io/packagist/l/deemru/waveskit.svg)](https://packagist.org/packages/deemru/waveskit)
+[![packagist](https://img.shields.io/packagist/v/deemru/waveskit.svg)](https://packagist.org/packages/deemru/waveskit) [![php-v](https://img.shields.io/packagist/php-v/deemru/waveskit.svg)](https://packagist.org/packages/deemru/waveskit) [![GitHub](https://img.shields.io/github/actions/workflow/status/deemru/WavesKit/php.yml?label=github%20actions)](https://github.com/deemru/WavesKit/actions/workflows/php.yml) [![codacy](https://img.shields.io/codacy/grade/439e2cedcdaf4091be29b7b1755e7c16.svg?label=codacy)](https://app.codacy.com/gh/deemru/WavesKit/files) [![license](https://img.shields.io/packagist/l/deemru/waveskit.svg)](https://packagist.org/packages/deemru/waveskit)
 
 [WavesKit](https://github.com/deemru/WavesKit) is an all-in-one Waves Platform development kit for the PHP language.
 
