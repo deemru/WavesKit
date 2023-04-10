@@ -32,6 +32,7 @@ class tester
     private $depth = 0;
     private $info = [];
     private $start = [];
+    private $init;
 
     public function pretest( $info )
     {

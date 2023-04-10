@@ -11,6 +11,11 @@ use Composer\CaBundle\CaBundle;
 
 class WavesKit
 {
+    private $chainId;
+    public $logFunction;
+    public $logFilter;
+    public $lastLog;
+
     /**
      * Creates WavesKit instance
      *
@@ -214,6 +219,8 @@ class WavesKit
             return $blake2b->hash( $data );
     }
 
+    private $rseed;
+
     /**
      * Signs a message with a private key
      *
@@ -324,6 +331,13 @@ class WavesKit
 
         return true;
     }
+
+    private $privateKey;
+    private $privateKey58;
+    private $publicKey;
+    private $publicKey58;
+    private $address;
+    private $address58;
 
     private function cleanup( $full = true )
     {
@@ -487,6 +501,8 @@ class WavesKit
         return $this->address58;
     }
 
+    private $sodium;
+
     /**
      * Sets sodium option
      *
@@ -512,6 +528,8 @@ class WavesKit
     {
         return isset( $this->sodium );
     }
+
+    private $lastbitflip;
 
     /**
      * Sets last bit flip option
@@ -563,6 +581,10 @@ class WavesKit
         $decoded = json_decode( $json, true, 512, JSON_BIGINT_AS_STRING );
         return $decoded === null ? false : $decoded;
     }
+
+    public $curlTimeout;
+    public $curlOptions;
+    private $curlSetBestOnError;
 
     private function fetchInit( $address, $doConnect )
     {
@@ -634,6 +656,11 @@ class WavesKit
         return $curl;
     }
 
+    public $nodes;
+    private $multiCurl;
+    private $curls;
+    private $cacheLifetime;
+
     /**
      * Sets node address with cache lifetime and backup node addresses
      *
@@ -691,6 +718,9 @@ class WavesKit
         }
     }
 
+    public $matcher;
+    public $matcherPublicKey;
+
     private function setDefaultMatcher()
     {
         if( !isset( $this->matcher ) )
@@ -724,6 +754,12 @@ class WavesKit
             }
         }
     }
+
+    private $matcherBaseFee;
+    private $matcherDiscountAsset;
+    private $matcherRates;
+    private $matcherDiscountRate;
+    private $matcherPairMinFees;
 
     /**
      * Sets matcher settings
@@ -1112,6 +1148,8 @@ class WavesKit
 
         return $this->fetchResult( curl_exec( $curl ), $host, $curl, $ignoreCodes );
     }
+
+    private $cache;
 
     private function setNodeCache( $key, $data )
     {
@@ -2637,6 +2675,8 @@ class WavesKit
         $this->cryptash = new Cryptash( $secret, $iv, $mac, $hash );
     }
 
+    private $cryptash;
+
     /**
      * Encrypts data with cryptash parameters
      *
@@ -2666,6 +2706,8 @@ class WavesKit
 
         return $this->cryptash->decryptash( $data );
     }
+
+    private $pairs;
 
     private function getPairsDatabase()
     {
