@@ -755,11 +755,11 @@ class WavesKit
         }
     }
 
-    private $matcherBaseFee;
-    private $matcherDiscountAsset;
-    private $matcherRates;
-    private $matcherDiscountRate;
-    private $matcherPairMinFees;
+    public $matcherBaseFee;
+    public $matcherDiscountAsset;
+    public $matcherRates;
+    public $matcherDiscountRate;
+    public $matcherPairMinFees;
 
     /**
      * Sets matcher settings
