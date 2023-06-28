@@ -809,7 +809,7 @@ class WavesKit
                 return false;
 
             if( $config['percent']['type'] !== 'spending' ||
-                $config['percent']['minFeeInWaves'] !== $this->matcherBaseFee )
+                $config['percent']['minFeeInWaves'] > $this->matcherBaseFee )
                 return false;
 
             $this->matcherPairMinFees[$pair] = $config['percent']['minFee'] / 100;
