@@ -760,6 +760,7 @@ class WavesKit
     public $matcherRates;
     public $matcherDiscountRate;
     public $matcherPairMinFees;
+    public $matcherPairMinFeesInWaves;
 
     /**
      * Sets matcher settings
@@ -801,6 +802,7 @@ class WavesKit
         $this->matcherDiscountRate = $this->matcherRates[$this->matcherDiscountAsset] * ( ( 100 - $settings['orderFee']['composite']['discount']['value'] ) / 100 );
 
         $this->matcherPairMinFees = [];
+        $this->matcherPairMinFeesInWaves = [];
         foreach( $settings['orderFee']['composite']['custom'] as $pair => $config )
         {
             if( !isset( $config['percent']['type'] ) ||
@@ -813,6 +815,8 @@ class WavesKit
                 return false;
 
             $this->matcherPairMinFees[$pair] = $config['percent']['minFee'] / 100;
+            if( $config['percent']['minFeeInWaves'] !== $this->matcherBaseFee )
+                $this->matcherPairMinFeesInWaves[$pair] = $config['percent']['minFeeInWaves'];
         }
 
         return true;
@@ -877,10 +881,11 @@ class WavesKit
             $rate = $this->matcherRates[$mainAsset];
             $amount = $isSell ? $order['amount'] : ( $order['amount'] * $order['price'] / 100000000 );
 
+            $matcherBaseFee = isset( $this->matcherPairMinFeesInWaves[$pair] ) ? $this->matcherPairMinFeesInWaves[$pair] : $this->matcherBaseFee;
             $fee = $amount * $this->matcherPairMinFees[$pair];
             $fee /= $rate;
-            if( $fee < $this->matcherBaseFee )
-                $fee = $this->matcherBaseFee;
+            if( $fee < $matcherBaseFee )
+                $fee = $matcherBaseFee;
 
             if( $discount )
             {
