@@ -9,8 +9,6 @@ use deemru\Cryptash;
 use deemru\Pairs;
 use Composer\CaBundle\CaBundle;
 
-use function deemru\curve25519\rnd;
-
 class WavesKit
 {
     private $chainId;
@@ -18,18 +16,18 @@ class WavesKit
     public $logFilter;
     public $lastLog;
 
-    private $sodiumSign;
-    private $sodiumZero;
+    private $c25519;
 
     /**
      * Creates WavesKit instance
      *
      * @param  string       $chainId        Blockchain identifier (default: 'W')
      * @param  mixed|null   $logFunction    Log functionality (default: null)
+     * @param  bool         $keyCaching     Cache key flag (default: false)
      *
      * @return void
      */
-    public function __construct( $chainId = 'W', $logFunction = null )
+    public function __construct( $chainId = 'W', $logFunction = null, $keyCaching = false )
     {
         $this->chainId = $chainId;
         if( isset( $logFunction ) )
@@ -42,25 +40,7 @@ class WavesKit
             $tz = true;
         }
 
-        static $sodiumSign;
-        if( !isset( $sodiumSign ) )
-        {
-            $sodiumSign = false;
-            if( function_exists( 'sodium_crypto_sign_seed_keypair' ) )
-            {
-                $seed = hex2bin( '3030303030303030303030303030303030303030303030303030303030303030' );
-                $pubkey = hex2bin( '0a8907a1ec72d1b80373cd41e8e4eb5a6a25fdda4ef82be7b635a54700b42289' );
-                $pubkey_sodium = substr( sodium_crypto_sign_seed_keypair( $seed ), 32, 32 );
-                if( $pubkey === $pubkey_sodium )
-                    $sodiumSign = true;
-            }
-        }
-        $this->sodiumSign = $sodiumSign;
-
-        static $sodiumZero;
-        if( !isset( $sodiumZero ) )
-            $sodiumZero = function_exists( 'sodium_memzero' );
-        $this->sodiumZero = $sodiumZero;
+        $this->c25519 = new Curve25519( $keyCaching );
     }
 
     /**
@@ -256,41 +236,66 @@ class WavesKit
      */
     public function sign( $data, $key = null )
     {
-        if( isset( $this->rseed ) )
+        if( $key === null )
         {
-            $rseed = $this->rseed;
-            unset( $this->rseed );
-            return $this->sign_rseed( $data, $rseed, $key );
-        }
-
-        if( $this->sodiumSign && $key === null )
-        {
-            if( !isset( $this->privateKeyPair ) )
+            if( !isset( $this->rseed ) )
             {
-                $key = $this->getPrivateKey();
-                $keypair = substr( sodium_crypto_sign_seed_keypair( $this->getSodium() ? substr( $this->sha512( $key ), 0, 32 ) : $key ), 0, 64 );
-                $this->cloakUsed( $key );
-                $this->privateKeyPairBit = ord( $keypair[63] ) & 128;
-                $this->privateKeyPair = $this->cloak( $keypair );
-            }
+                static $sodiumSign;
+                if( !isset( $sodiumSign ) )
+                {
+                    $sodiumSign = false;
+                    if( function_exists( 'sodium_crypto_sign_seed_keypair' ) )
+                    {
+                        $seed = hex2bin( '3030303030303030303030303030303030303030303030303030303030303030' );
+                        $pubkey = hex2bin( '0a8907a1ec72d1b80373cd41e8e4eb5a6a25fdda4ef82be7b635a54700b42289' );
+                        $pubkey_sodium = substr( sodium_crypto_sign_seed_keypair( $seed ), 32, 32 );
+                        if( $pubkey === $pubkey_sodium )
+                            $sodiumSign = true;
+                    }
+                }
 
-            $keypair = $this->uncloak( $this->privateKeyPair );
-            $sig = sodium_crypto_sign_detached( $data, $keypair );
-            $this->cloakUsed( $keypair );
-            if( $this->privateKeyPairBit !== 0 )
-                $sig[63] = chr( ord( $sig[63] ) | $this->privateKeyPairBit );
-            return $sig;
+                if( $sodiumSign )
+                {
+                    if( !isset( $this->privateKeyPairCloaked ) )
+                    {
+                        $this->privateKeyCloaked->uncloak( function( $key )
+                        {
+                            $keypair = substr( sodium_crypto_sign_seed_keypair( $this->getSodium() ? substr( $this->sha512( $key ), 0, 32 ) : $key ), 0, 64 );
+                            $this->privateKeyPairBit = ord( $keypair[63] ) & 128;
+                            $this->privateKeyPairCloaked = new Cloaked;
+                            $this->privateKeyPairCloaked->cloak( $keypair );
+                        } );
+                    }
+
+                    return $this->privateKeyPairCloaked->uncloak( function( $keypair ) use ( $data )
+                    {
+                        $sig = sodium_crypto_sign_detached( $data, $keypair );
+                        if( $this->privateKeyPairBit !== 0 )
+                            $sig[63] = chr( ord( $sig[63] ) | $this->privateKeyPairBit );
+                        return $sig;
+                    } );
+                }
+
+                return $this->privateKeyCloaked->uncloak( function( $key ) use ( $data )
+                {
+                    if( $this->getSodium() )
+                        return $this->c25519->sign_sodium( $data, $key );
+                    return $this->c25519->sign( $data, $key );
+                } );
+            }
+            else // rseed
+            {
+                return $this->privateKeyCloaked->uncloak( function( $key ) use ( $data )
+                {
+                    $rseed = $this->rseed;
+                    unset( $this->rseed );
+                    return $this->c25519->sign( $data, $key, $rseed );
+                } );
+            }
         }
 
-        if( $this->getSodium() )
-            return $this->sign_sodium( $data, $key );
-
-        return $this->sign_php( $data, $key );
+        return $this->c25519->sign( $data, $key );
     }
-
-    private function sign_php( $data, $key = null ){ return $this->c25519()->sign( $data, isset( $key ) ? $key : $this->getPrivateKey() ); }
-    private function sign_sodium( $data, $key = null ){ return $this->c25519()->sign_sodium( $data, isset( $key ) ? $key : $this->getPrivateKey() ); }
-    private function sign_rseed( $data, $rseed, $key = null ){ return $this->c25519()->sign( $data, isset( $key ) ? $key : $this->getPrivateKey(), $rseed ); }
 
     /**
      * Verifies a signature of a message by a public key
@@ -301,17 +306,7 @@ class WavesKit
      *
      * @return bool Returns TRUE if the signature is valid or FALSE on failure
      */
-    public function verify( $sig, $data, $key = null ){ return $this->c25519()->verify( $sig, $data, isset( $key ) ? $key : $this->getPublicKey( true ) ); }
-
-    private function c25519()
-    {
-        static $c25519;
-
-        if( !isset( $c25519 ) )
-            $c25519 = new Curve25519();
-
-        return $c25519;
-    }
+    public function verify( $sig, $data, $key = null ){ return $this->c25519->verify( $sig, $data, isset( $key ) ? $key : $this->getPublicKey( true ) ); }
 
     /**
      * Generates random seed string
@@ -376,8 +371,8 @@ class WavesKit
         return true;
     }
 
-    private $privateKey;
-    private $privateKeyPair;
+    private $privateKeyCloaked;
+    private $privateKeyPairCloaked;
     private $privateKeyPairBit;
     private $publicKey;
     private $publicKey58;
@@ -388,68 +383,15 @@ class WavesKit
     {
         if( $full )
         {
-            unset( $this->privateKey );
-            unset( $this->privateKeyPair );
+            unset( $this->privateKeyCloaked );
+            unset( $this->privateKeyPairCloaked );
+            unset( $this->privateKeyPairBit );
         }
 
         unset( $this->publicKey );
         unset( $this->publicKey58 );
         unset( $this->address );
         unset( $this->address58 );
-    }
-
-    private $cloakBytes;
-    private $cloakMap;
-
-    private function cloakInit()
-    {
-        if( !isset( $this->cloakMap ) )
-        {
-            for( ;; )
-            {
-                $n = 65536;
-                $bytes = Cryptash::rnd( $n );
-                $map = [];
-                for( $i = 0; $i < $n; ++$i )
-                    $map[ord($bytes[$i])][] = $i;
-                if( count( $map ) === 256 )
-                    break;
-            }
-
-            $this->cloakBytes = $bytes;
-            $this->cloakMap = $map;
-        }
-    }
-
-    private function cloak( &$data )
-    {
-        $this->cloakInit();
-
-        $cloaked = [];
-        $n = strlen( $data );
-        for( $i = 0; $i < $n; ++$i )
-        {
-            $pointers = $this->cloakMap[ord( $data[$i] )];
-            $cloaked[] = $pointers[array_rand( $pointers )];
-        }
-
-        $this->cloakUsed( $data );
-        return $cloaked;
-    }
-
-    private function uncloak( $cloaked )
-    {
-        $n = count( $cloaked );
-        $data = str_pad( '', $n, ' ' );
-        for( $i = 0; $i < $n; ++$i )
-            $data[$i] = $this->cloakBytes[$cloaked[$i]];
-        return $data;
-    }
-
-    private function cloakUsed( &$data )
-    {
-        if( $this->sodiumZero )
-            sodium_memzero( $data );
     }
 
     /**
@@ -464,8 +406,7 @@ class WavesKit
     public function setSeed( $seed, $raw = true, $prefix = "\0\0\0\0" )
     {
         $this->cleanup();
-        $key = $this->getPrivateKey( true, $raw ? $seed : $this->base58Decode( $seed, false ), $prefix );
-        $this->cloakUsed( $key );
+        $this->getPrivateKey( true, $raw ? $seed : $this->base58Decode( $seed, false ), $prefix, true );
     }
 
     /**
@@ -480,7 +421,8 @@ class WavesKit
     {
         $this->cleanup();
         $key = $raw ? $privateKey : $this->base58Decode( $privateKey, false );
-        $this->privateKey = $this->cloak( $key );
+        $this->privateKeyCloaked = new Cloaked;
+        $this->privateKeyCloaked->cloak( $key );
     }
 
     /**
@@ -489,24 +431,28 @@ class WavesKit
      * @param  bool         $raw    String format is binary or base58 (default: binary)
      * @param  string|null  $seed   Seed string in binary format (default: null)
      * @param  string|null  $prefix Prefix string in binary format (default: "\0\0\0\0")
+     * @param  bool|false   $noret  Do not return the key (default: false)
      *
-     * @return string Private key
+     * @return string|bool Private key or FALSE on failure or TRUE on noret
      */
-    public function getPrivateKey( $raw = true, $seed = null, $prefix = "\0\0\0\0" )
+    public function getPrivateKey( $raw = true, $seed = null, $prefix = "\0\0\0\0", $noret = false )
     {
-        if( !isset( $this->privateKey ) )
+        if( !isset( $this->privateKeyCloaked ) )
         {
             if( !isset( $seed ) )
                 return false;
             $temp = $prefix . $seed;
             $temp = $this->secureHash( $temp );
             $temp = $this->sha256( $temp );
-            $this->privateKey = $this->cloak( $temp );
+            $this->privateKeyCloaked = new Cloaked;
+            $this->privateKeyCloaked->cloak( $temp );
         }
 
-        if( $raw )
-            return $this->uncloak( $this->privateKey );
-        return $this->base58Encode( $this->uncloak( $this->privateKey ) );
+        if( $noret )
+            return true;
+
+        $key = $this->privateKeyCloaked->uncloak( function( $key ){ return $key; } );
+        return $raw ? $key : $this->base58Encode( $key );
     }
 
     /**
@@ -528,19 +474,25 @@ class WavesKit
      *
      * @param  bool $raw String format is binary or base58 (default: base58)
      *
-     * @return string Public key
+     * @return string|false Public key or FALSE on failure
      */
     public function getPublicKey( $raw = false )
     {
         if( !isset( $this->publicKey ) )
         {
-            $temp = $this->getPrivateKey();
-            if( $temp === false || strlen( $temp ) !== 32 )
+            if( !isset( $this->privateKeyCloaked ) )
                 return false;
-            if( $this->getSodium() )
-                $temp = $this->c25519()->getSodiumPrivateKeyFromPrivateKey( $temp );
-            $temp = $this->c25519()->getPublicKeyFromPrivateKey( $temp, $this->getLastBitFlip() );
-            $this->publicKey = $temp;
+
+            $this->publicKey = $this->privateKeyCloaked->uncloak( function( $key )
+            {
+                $temp = $key;
+                if( $temp === false || strlen( $temp ) !== 32 )
+                    return false;
+                if( $this->getSodium() )
+                    $temp = $this->c25519->getSodiumPrivateKeyFromPrivateKey( $temp );
+                $temp = $this->c25519->getPublicKeyFromPrivateKey( $temp, $this->getLastBitFlip() );
+                return $temp;
+            } );
         }
 
         if( $raw )
@@ -574,7 +526,7 @@ class WavesKit
      *
      * @param  bool $raw String format is binary or base58 (default: base58)
      *
-     * @return string Address
+     * @return string|false Address or FALSE on failure
      */
     public function getAddress( $raw = false )
     {
@@ -959,7 +911,7 @@ class WavesKit
      * @param  array    $order      Order as an array
      * @param  bool     $discount   Use dicount asset (default: true)
      *
-     * @return array|bool Order as an array or FALSE on failure
+     * @return array|false Order as an array or FALSE on failure
      */
     public function setMatcherFee( $order, $discount = true )
     {

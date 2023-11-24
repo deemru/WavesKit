@@ -97,7 +97,7 @@
 **Description**
 
 ```php
-public __construct (string $chainId, mixed|null $logFunction)
+public __construct (string $chainId, mixed|null $logFunction, bool $keyCaching)
 ```
 
 Creates WavesKit instance 
@@ -110,6 +110,8 @@ Creates WavesKit instance
 : Blockchain identifier (default: 'W')  
 * `(mixed|null) $logFunction`
 : Log functionality (default: null)  
+* `(bool) $keyCaching`
+: Cache key flag (default: false)  
 
 **Return Values**
 
@@ -573,9 +575,9 @@ Gets address
 
 **Return Values**
 
-`string`
+`string|false`
 
-> Address
+> Address or FALSE on failure
 
 
 <hr />
@@ -834,7 +836,7 @@ Gets order history for your account
 **Description**
 
 ```php
-public getPrivateKey (bool $raw, string|null $seed, string|null $prefix)
+public getPrivateKey (bool $raw, string|null $seed, string|null $prefix, bool|false $noret)
 ```
 
 Gets private key 
@@ -849,12 +851,14 @@ Gets private key
 : Seed string in binary format (default: null)  
 * `(string|null) $prefix`
 : Prefix string in binary format (default: "\0\0\0\0")  
+* `(bool|false) $noret`
+: Do not return the key (default: false)  
 
 **Return Values**
 
-`string`
+`string|bool`
 
-> Private key
+> Private key or FALSE on failure or TRUE on noret
 
 
 <hr />
@@ -879,9 +883,9 @@ Gets public Key
 
 **Return Values**
 
-`string`
+`string|false`
 
-> Public key
+> Public key or FALSE on failure
 
 
 <hr />
@@ -1379,7 +1383,7 @@ Sets an order fee based on matcher settings
 
 **Return Values**
 
-`array|bool`
+`array|false`
 
 > Order as an array or FALSE on failure
 
