@@ -862,9 +862,15 @@ class WavesKit
             if( $config['percent']['type'] !== 'spending' )
                 return false;
 
-            $this->matcherPairMinFees[$pair] = $config['percent']['minFee'] / 100;
-            if( $config['percent']['minFeeInWaves'] !== $this->matcherBaseFee )
-                $this->matcherPairMinFeesInWaves[$pair] = $config['percent']['minFeeInWaves'];
+            $minFeeAB = isset( $config['percent']['amount']['minFee'] ) ? $config['percent']['amount']['minFee'] : $config['percent']['minFee'];
+            $minFeeBA = isset( $config['percent']['price']['minFee'] ) ? $config['percent']['price']['minFee'] : $config['percent']['minFee'];
+            $minFeeInWavesAB = isset( $config['percent']['amount']['minFeeInWaves'] ) ? $config['percent']['amount']['minFeeInWaves'] : $config['percent']['minFeeInWaves'];
+            $minFeeInWavesBA = isset( $config['percent']['price']['minFeeInWaves'] ) ? $config['percent']['price']['minFeeInWaves'] : $config['percent']['minFeeInWaves'];
+
+            $this->matcherPairMinFees[$pair][1] = $minFeeAB / 100;
+            $this->matcherPairMinFees[$pair][0] = $minFeeBA / 100;
+            $this->matcherPairMinFeesInWaves[$pair][1] = $minFeeInWavesAB;
+            $this->matcherPairMinFeesInWaves[$pair][0] = $minFeeInWavesBA;
         }
 
         return true;
@@ -920,17 +926,18 @@ class WavesKit
         $priceAsset = $this->assetId( $order['assetPair']['priceAsset'] );
         $mainAsset = $isSell ? $amountAsset : $priceAsset;
         $pair = $amountAsset . '-' . $priceAsset;
+        $direction = $isSell ? 1 : 0;
 
         if( !isset( $this->matcherBaseFee ) && !$this->setMatcherSettings() )
             return false;
 
-        if( isset( $this->matcherPairMinFees[$pair] ) )
+        if( isset( $this->matcherPairMinFees[$pair][$direction] ) )
         {
             $rate = $this->matcherRates[$mainAsset];
             $amount = $isSell ? $order['amount'] : ( $order['amount'] * $order['price'] / 100000000 );
 
-            $matcherBaseFee = isset( $this->matcherPairMinFeesInWaves[$pair] ) ? $this->matcherPairMinFeesInWaves[$pair] : $this->matcherBaseFee;
-            $fee = $amount * $this->matcherPairMinFees[$pair];
+            $matcherBaseFee = $this->matcherPairMinFeesInWaves[$pair][$direction];
+            $fee = $amount * $this->matcherPairMinFees[$pair][$direction];
             $fee /= $rate;
             if( $fee < $matcherBaseFee )
                 $fee = $matcherBaseFee;
