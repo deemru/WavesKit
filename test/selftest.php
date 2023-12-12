@@ -555,7 +555,14 @@ $t->pretest( "txData (x$n)" );
 $t->pretest( "txAddressScript" );
 {
     $publicKey = $wkFaucet->getPublicKey();
-    $script = "sigVerify( tx.bodyBytes, tx.proofs[0], base58'$publicKey' )";
+    $script = "
+{-# STDLIB_VERSION 6 #-}
+{-# CONTENT_TYPE DAPP #-}
+{-# SCRIPT_TYPE ACCOUNT #-}
+
+@Verifier( tx )
+func verify() = sigVerify( tx.bodyBytes, tx.proofs[0], base58'$publicKey' )
+";
     $script = $wk->compile( $script );
 
     $tx = $wk->txAddressScript( $script['script'] );
