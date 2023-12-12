@@ -1320,7 +1320,7 @@ class WavesKit
      */
     public function compile( $script )
     {
-        if( false === ( $json = $this->fetch( '/utils/script/compile', true, $script ) ) )
+        if( false === ( $json = $this->fetch( '/utils/script/compileCode', true, $script ) ) )
             return false;
 
         if( false === ( $json = $this->json_decode( $json ) ) )
