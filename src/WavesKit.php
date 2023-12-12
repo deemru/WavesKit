@@ -2100,7 +2100,7 @@ class WavesKit
         $tx['senderPublicKey'] = isset( $options['senderPublicKey'] ) ? $options['senderPublicKey'] : $this->getPublicKey();
         $tx['timestamp'] = isset( $options['timestamp'] ) ? $options['timestamp'] : $this->timestamp();
         $tx['script'] = isset( $options['script'] ) ? $options['script'] : ( isset( $script ) ? 'base64:' . $script : null );
-        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : 1000000;
+        $tx['fee'] = isset( $options['fee'] ) ? $options['fee'] : $this->getScriptFee( $tx );
         return $tx;
     }
 
@@ -2390,6 +2390,18 @@ class WavesKit
             $tx['fee'] = 0;
 
         $size = strlen( $this->txBody( $tx ) );
+        return 100000 * ( 1 + (int)( ( $size - 1 ) / 1024 ) );
+    }
+
+    private function getScriptFee( $tx )
+    {
+        if( !isset( $tx['script'] ) )
+            return 100000;
+
+        $size = strlen( $this->base64TxToBin( $tx['script'] ) );
+        if( $size === 0 )
+            return 100000;
+
         return 100000 * ( 1 + (int)( ( $size - 1 ) / 1024 ) );
     }
 
