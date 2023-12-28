@@ -810,6 +810,9 @@ class WavesKit
     public $matcherDiscountRate;
     public $matcherPairMinFees;
     public $matcherPairMinFeesInWaves;
+    public $matcherVerified;
+    public $matcherVerifiedMinFee;
+    public $matcherVerifiedMinFeeInWaves;
 
     /**
      * Sets matcher settings
@@ -871,6 +874,17 @@ class WavesKit
             $this->matcherPairMinFees[$pair][0] = $minFeeBA / 100;
             $this->matcherPairMinFeesInWaves[$pair][1] = $minFeeInWavesAB;
             $this->matcherPairMinFeesInWaves[$pair][0] = $minFeeInWavesBA;
+        }
+
+        $this->matcherVerified = [];
+        if( isset( $settings['orderFee']['composite']['verified']['assets'] ) &&
+            isset( $settings['orderFee']['composite']['verified']['settings']['percent']['minFee'] ) &&
+            isset( $settings['orderFee']['composite']['verified']['settings']['percent']['minFeeInWaves'] ) )
+        {
+            foreach( $settings['orderFee']['composite']['verified']['assets'] as $asset )
+                $this->matcherVerified[$asset] = true;
+            $this->matcherVerifiedMinFee = $settings['orderFee']['composite']['verified']['settings']['percent']['minFee'] / 100;
+            $this->matcherVerifiedMinFeeInWaves = $settings['orderFee']['composite']['verified']['settings']['percent']['minFeeInWaves'];
         }
 
         return true;
@@ -951,6 +965,32 @@ class WavesKit
             {
                 $asset = $mainAsset === 'WAVES' ? null : $mainAsset;
                 //$rate = $rate;
+            }
+        }
+        else
+        if( isset( $this->matcherVerified[$priceAsset] ) || isset( $this->matcherVerified[$amountAsset] ) )
+        {
+            $isPrice = isset( $this->matcherVerified[$priceAsset] );
+            $mainAsset = $isPrice ? $priceAsset : $amountAsset;
+
+            $rate = $this->matcherRates[$mainAsset];
+            $amount = $isPrice ? ( $order['amount'] * $order['price'] / 100000000 ) : $order['amount'];
+
+            $matcherBaseFee = $this->matcherVerifiedMinFeeInWaves;
+            $fee = $amount * $this->matcherVerifiedMinFee;
+            $fee /= $rate;
+            if( $fee < $matcherBaseFee )
+                $fee = $matcherBaseFee;
+
+            if( $discount )
+            {
+                $asset = $this->matcherDiscountAsset;
+                $rate = $this->matcherDiscountRate;
+            }
+            else
+            {
+                $asset = null; // fixedAsset WAVES only
+                $rate = 1;
             }
         }
         else
