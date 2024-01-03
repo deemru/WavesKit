@@ -714,12 +714,12 @@ class WavesKit
      * Sets node address with cache lifetime and backup node addresses
      *
      * @param  string|array $nodeAddress    Main node address to work with
-     * @param  int          $cacheLifetime  Cache lifetime in seconds (default: 1)
+     * @param  int|float    $cacheLifetime  Cache lifetime in seconds (default: 0.5)
      * @param  array|null   $backupNodes    Backup node addresses to fallback
      *
      * @return void
      */
-    public function setNodeAddress( $nodeAddress, $cacheLifetime = 1, $backupNodes = null )
+    public function setNodeAddress( $nodeAddress, $cacheLifetime = 0.5, $backupNodes = null )
     {
         $this->nodes = is_array( $nodeAddress ) ? $nodeAddress : [ $nodeAddress ];
         if( isset( $backupNodes ) )
@@ -1650,24 +1650,26 @@ class WavesKit
      *
      * @param  array    $tx             Transaction as an array
      * @param  int      $confirmations  Number of confirmations to reach (default: 0)
-     * @param  int      $sleep          Seconds to sleep between requests (default: 1)
+     * @param  int|float $sleep         Seconds to sleep between requests (default: 0.5)
      * @param  int      $timeout        Timeout to reach lost status (default: 30)
      * @param  bool     $hard           Use hard timeout (default: false)
      *
      * @return array|false Ensured transaction as an array or FALSE on failure
      */
-    public function ensure( $tx, $confirmations = 0, $sleep = 1, $timeout = 30, $hard = false )
+    public function ensure( $tx, $confirmations = 0, $sleep = 0.5, $timeout = 30, $hard = false )
     {
         if( $tx === false )
             return false;
 
         $id = $tx['id'];
-        $n = 1;
+        $n = 0;
         $n_utx = 0;
+        $usleep = (int)( $sleep * 1000000 );
+        $tsleep = 0;
 
         while( false === ( $tx = $this->getTransactionById( $id ) ) )
         {
-            if( !$sleep )
+            if( $usleep === 0 )
                 return false;
 
             if( $hard && $n > $timeout )
@@ -1676,6 +1678,12 @@ class WavesKit
                 return false;
             }
 
+            usleep( $usleep );
+            $tsleep += $usleep;
+            if( (int)( ( 1 + $tsleep ) / 1000000 ) === $n )
+                continue;
+
+            ++$n;
             $n_diff = $n - $n_utx;
             if( $n_utx )
             {
@@ -1700,32 +1708,34 @@ class WavesKit
             {
                 if( false === ( $tx = $this->getTransactionById( $id, true ) ) )
                 {
-                    $this->log( 'i', "($id) not in unconfirmed ($n)" );
                     $n_utx = $n;
                     continue;
                 }
 
                 $this->log( 'i', "($id) unconfirmed ($n)" );
             }
-
-            sleep( $sleep );
-            $n++;
         }
 
-        if( $sleep )
-            $this->log( 's', "($id) confirmed" . ( $n > 1 ? " ($n)" : '' ) );
+        $succeeded = isset( $tx['applicationStatus'] ) && $tx['applicationStatus'] === 'succeeded';
+        if( $usleep !== 0 )
+        {
+            if( $succeeded )
+                $this->log( 's', "($id) confirmed" . ( $n > 0 ? " ($n)" : '' ) );
+            else
+                $this->log( 'e', "($id) failed" . ( $n > 0 ? " ($n)" : '' ) );
+        }
 
-        if( $confirmations > 0 )
+        if( $succeeded && $confirmations > 0 )
         {
             $n = 0;
             while( $confirmations > ( $c = $this->height() - $tx['height'] ) )
             {
-                if( !$sleep )
+                if( $usleep === 0 )
                     return false;
 
                 $n++;
                 $this->log( 'i', "($id) $c/$confirmations confirmations ($n)" );
-                sleep( $sleep > 1 ? $sleep : $sleep * $confirmations );
+                sleep( $sleep > 1 ? (int)$sleep : $confirmations );
             }
 
             if( $tx !== $this->getTransactionById( $id ) )
