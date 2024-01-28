@@ -1421,6 +1421,31 @@ class WavesKit
     }
 
     /**
+     * Evaluates a transaction
+     *
+     * @param  array $tx Transaction as an array
+     *
+     * @return array|false Evaluated transaction as an array or FALSE on failure
+     */
+    public function txEvaluate( $tx )
+    {
+        if( !isset( $tx['dApp'] ) )
+            return false;
+
+        if( false === ( $json = $this->fetch( '/utils/script/evaluate/' . $tx['dApp'], true, json_encode( $tx ) ) ) )
+            return false;
+
+        if( false === ( $json = $this->json_decode( $json ) ) )
+            return false;
+
+        if( !isset( $json['stateChanges'] ) && !isset( $json['error'] ) )
+            return false;
+
+        $json['valid'] = isset( $json['stateChanges'] ) && !isset( $json['error'] );
+        return $json;
+    }
+
+    /**
      * Broadcasts a transaction
      *
      * @param  array $tx Transaction as an array

@@ -72,6 +72,7 @@
 |[txBroadcast](#waveskittxbroadcast)|Broadcasts a transaction|
 |[txBurn](#waveskittxburn)|Makes burn transaction as an array|
 |[txData](#waveskittxdata)|Makes data transaction as an array|
+|[txEvaluate](#waveskittxevaluate)|Evaluates a transaction|
 |[txInvokeScript](#waveskittxinvokescript)|Makes invoke script transaction as an array|
 |[txIssue](#waveskittxissue)|Makes issue transaction as an array|
 |[txLease](#waveskittxlease)|Makes lease transaction as an array|
@@ -456,7 +457,7 @@ Encrypts data with cryptash parameters
 **Description**
 
 ```php
-public ensure (array $tx, int $confirmations, int $sleep, int $timeout, bool $hard)
+public ensure (array $tx, int $confirmations, int|float $sleep, int $timeout, bool $hard)
 ```
 
 Ensures a transaction confirmed and reached required confirmations 
@@ -469,8 +470,8 @@ Ensures a transaction confirmed and reached required confirmations
 : Transaction as an array  
 * `(int) $confirmations`
 : Number of confirmations to reach (default: 0)  
-* `(int) $sleep`
-: Seconds to sleep between requests (default: 1)  
+* `(int|float) $sleep`
+: Seconds to sleep between requests (default: 0.5)  
 * `(int) $timeout`
 : Timeout to reach lost status (default: 30)  
 * `(bool) $hard`
@@ -1423,7 +1424,7 @@ Sets matcher settings
 **Description**
 
 ```php
-public setNodeAddress (string|array $nodeAddress, int $cacheLifetime, array|null $backupNodes)
+public setNodeAddress (string|array $nodeAddress, int|float $cacheLifetime, array|null $backupNodes)
 ```
 
 Sets node address with cache lifetime and backup node addresses 
@@ -1434,8 +1435,8 @@ Sets node address with cache lifetime and backup node addresses
 
 * `(string|array) $nodeAddress`
 : Main node address to work with  
-* `(int) $cacheLifetime`
-: Cache lifetime in seconds (default: 1)  
+* `(int|float) $cacheLifetime`
+: Cache lifetime in seconds (default: 0.5)  
 * `(array|null) $backupNodes`
 : Backup node addresses to fallback  
 
@@ -1927,6 +1928,33 @@ Makes data transaction as an array
 `array|false`
 
 > Data transaction as an array or FALSE on failure
+
+
+<hr />
+
+
+### WavesKit::txEvaluate  
+
+**Description**
+
+```php
+public txEvaluate (array $tx)
+```
+
+Evaluates a transaction 
+
+ 
+
+**Parameters**
+
+* `(array) $tx`
+: Transaction as an array  
+
+**Return Values**
+
+`array|false`
+
+> Evaluated transaction as an array or FALSE on failure
 
 
 <hr />
