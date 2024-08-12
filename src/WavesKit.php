@@ -41,6 +41,22 @@ class WavesKit
         }
 
         $this->c25519 = new Curve25519( $keyCaching );
+
+        if( !isset( $this->curlTimeout ) )
+        {
+            if( !defined( 'WK_CURL_TIMEOUT' ) )
+                define( 'WK_CURL_TIMEOUT', 5 );
+
+            $this->curlTimeout = WK_CURL_TIMEOUT;
+        }
+
+        if( PHP_MAJOR_VERSION > 5 )
+        {
+            if( !defined( 'WK_CURL_OPTIONS' ) )
+                define( 'WK_CURL_OPTIONS', [] );
+            foreach( WK_CURL_OPTIONS as $k => $v )
+                $this->curlOptions[$k] = $v;
+        }
     }
 
     /**
@@ -633,82 +649,8 @@ class WavesKit
 
     public $curlTimeout;
     public $curlOptions;
-    private $curlSetBestOnError;
-
-    private function fetchInit( $address, $doConnect )
-    {
-        if( false === ( $curl = curl_init() ) )
-            return false;
-
-        if( !isset( $this->curlTimeout ) )
-        {
-            if( !defined( 'WK_CURL_TIMEOUT' ) )
-                define( 'WK_CURL_TIMEOUT', 5 );
-
-            $this->curlTimeout = WK_CURL_TIMEOUT;
-        }
-
-        $options = [ CURLOPT_CONNECTTIMEOUT  => $this->curlTimeout,
-                     CURLOPT_TIMEOUT         => $this->curlTimeout,
-                     CURLOPT_URL             => $address,
-                     CURLOPT_HTTP_VERSION    => CURL_HTTP_VERSION_1_1,
-                     CURLOPT_CONNECT_ONLY    => true,
-                     CURLOPT_CAINFO          => CaBundle::getBundledCaBundlePath() ];
-
-        if( defined( 'WK_CURL_UNSAFE' ) )
-        {
-            $options[CURLOPT_SSL_VERIFYPEER] = false;
-            $options[CURLOPT_SSL_VERIFYHOST] = false;
-        }
-
-        if( !isset( $this->curlOptions ) )
-        {
-            $this->curlOptions = [];
-
-            if( PHP_MAJOR_VERSION > 5 )
-            {
-                if( !defined( 'WK_CURL_OPTIONS' ) )
-                    define( 'WK_CURL_OPTIONS', [] );
-                foreach( WK_CURL_OPTIONS as $k => $v )
-                    $this->curlOptions[$k] = $v;
-            }
-        }
-
-        foreach( $this->curlOptions as $k => $v )
-            $options[$k] = $v;
-
-        if( false === curl_setopt_array( $curl, $options ) )
-            return false;
-
-        if( $doConnect && !curl_exec( $curl ) && 0 !== ( $errno = curl_errno( $curl ) ) )
-        {
-            $this->log( 'e', "curl error $errno: " . curl_error( $curl ) );
-            curl_close( $curl );
-
-            if( isset( $this->curlSetBestOnError ) && $this->curlSetBestOnError > 0 )
-                $this->curlSetBestOnError++;
-
-            return false;
-        }
-
-        if( false === curl_setopt_array( $curl, [
-            CURLOPT_RETURNTRANSFER  => true,
-            CURLOPT_CONNECT_ONLY    => false,
-            CURLOPT_FOLLOWLOCATION  => true,
-            CURLOPT_MAXREDIRS       => 3,
-        ] ) )
-        {
-            curl_close( $curl );
-            return false;
-        }
-
-        return $curl;
-    }
-
-    public $nodes;
-    private $multiCurl;
-    private $curls;
-    private $cacheLifetime;
+    private $setBestOnError = false;
+    private $fetcher;
 
     /**
      * Sets node address with cache lifetime and backup node addresses
@@ -721,21 +663,12 @@ class WavesKit
      */
     public function setNodeAddress( $nodeAddress, $cacheLifetime = 0.5, $backupNodes = null )
     {
-        $this->nodes = is_array( $nodeAddress ) ? $nodeAddress : [ $nodeAddress ];
+        $hosts = is_array( $nodeAddress ) ? $nodeAddress : [ $nodeAddress ];
         if( isset( $backupNodes ) )
-            $this->nodes = array_merge( $this->nodes, $backupNodes );
-
-        if( isset( $this->multiCurl ) )
-        {
-            curl_multi_close( $this->multiCurl );
-            unset( $this->multiCurl );
-        }
-
-        $this->curls = [];
-        $this->cacheLifetime = $cacheLifetime;
-        $this->resetNodeCache();
-        if( count( $this->nodes ) > 1 && defined( 'WK_CURL_SETBESTONERROR' ) )
-            $this->curlSetBestOnError = 1;
+            $hosts = array_merge( $hosts, $backupNodes );
+        $this->fetcher = Fetcher::hosts( $hosts )->setTimeoutCache( $cacheLifetime );
+        if( count( $hosts ) > 1 && defined( 'WK_CURL_SETBESTONERROR' ) )
+            $this->setBestOnError = true;
     }
 
     /**
@@ -745,12 +678,12 @@ class WavesKit
      */
     public function getNodeAddress()
     {
-        return isset( $this->nodes[0] ) ? $this->nodes[0] : false;
+        return isset( $this->fetcher ) ? $this->fetcher->getHost() : false;
     }
 
     private function setDefaultNode()
     {
-        if( !isset( $this->nodes[0] ) || $this->nodes[0] === false )
+        if( $this->getNodeAddress() === false )
         {
             switch( $this->chainId )
             {
@@ -765,6 +698,8 @@ class WavesKit
                     break;
             }
         }
+
+        $this->fetcher->setTimeoutConnect( $this->curlTimeout )->setTimeoutExec( $this->curlTimeout )->setOptions( $this->curlOptions );
     }
 
     public $matcher;
@@ -1030,59 +965,15 @@ class WavesKit
     public function fetch( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
     {
         $this->setDefaultNode();
-
-        if( !$post && null !== ( $fetch = $this->getNodeCache( $url ) ) )
-            return $fetch;
-
-        if( isset( $this->curlSetBestOnError ) && $this->curlSetBestOnError > 1 )
+        $result = $this->fetcher->fetch( $url, $post, $data, $ignoreCodes, $headers );
+        $lastError = $this->fetcher->getLastError();
+        if( $lastError !== false )
         {
-            $this->setBestNode();
-            $this->curlSetBestOnError = 1;
-            $this->log( 'i', 'setBestNode = ' . $this->getNodeAddress() );
+            $this->log( 'e', $lastError );
+            if( $this->setBestOnError )
+                $this->setBestNode();
         }
-
-        $n = count( $this->nodes );
-        for( $i = 0; $i < $n; $i++ )
-        {
-            $node = $this->nodes[$i];
-            if( isset( $this->curls[$i] ) )
-                $curl = $this->curls[$i];
-            else
-            {
-                $curl = $this->fetchInit( $node, true );
-                if( $curl === false )
-                    continue;
-
-                $this->curls[$i] = $curl;
-            }
-
-            $fetch = $this->fetchSingle( $node, $curl, $url, $post, $data, $ignoreCodes, $headers )[0];
-
-            if( false !== $fetch )
-            {
-                $fetch = $fetch;
-                if( !$post )
-                    $this->setNodeCache( $url, $fetch );
-
-                return $fetch;
-            }
-
-            if( isset( $ignoreCodes ) && in_array( curl_getinfo( $curl, CURLINFO_HTTP_CODE ), $ignoreCodes ) )
-            {
-                if( !$post )
-                    $this->setNodeCache( $url, false );
-
-                return false;
-            }
-
-            if( curl_getinfo( $curl, CURLINFO_HTTP_CODE ) === 0 )
-            {
-                curl_close( $curl );
-                unset( $this->curls[$i] );
-            }
-        }
-
-        return false;
+        return $result;
     }
 
     /**
@@ -1098,69 +989,7 @@ class WavesKit
      */
     public function fetchMulti( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
     {
-        $t = microtime( true );
-        $n = count( $this->nodes );
-        for( $i = 0; $i < $n; $i++ )
-        {
-            $node = $this->nodes[$i];
-            if( isset( $this->curls[$i] ) )
-                $curl = $this->curls[$i];
-            else
-            {
-                $curl = $this->fetchInit( $node, false );
-                if( $curl === false )
-                    continue;
-
-                $this->curls[$i] = $curl;
-            }
-
-            if( !$this->fetchSetup( $node, $curl, $url, $post, $data, $headers ) )
-                return false;
-        }
-
-        if( !isset( $this->multiCurl ) )
-            $this->multiCurl = curl_multi_init();
-
-        $multiCurl = $this->multiCurl;
-
-        for( $i = 0; $i < $n; $i++ )
-            if( isset( $this->curls[$i] ) )
-                curl_multi_add_handle( $multiCurl, $this->curls[$i] );
-
-        $active = 0;
-        for( ;; )
-        {
-            if( CURLM_OK != curl_multi_exec( $multiCurl, $active ) )
-                break;
-
-            if( $active === 0 )
-                break;
-
-            curl_multi_select( $multiCurl );
-        }
-
-        $multiData = [];
-        for( $i = 0; $i < $n; $i++ )
-        {
-            if( !isset( $this->curls[$i] ) )
-            {
-                if( !isset( $timetotal ) )
-                    $timetotal = microtime( true ) - $t;
-
-                $multiData[$this->nodes[$i]] = [ false, $timetotal ];
-                continue;
-            }
-
-            $curl = $this->curls[$i];
-            $host = $this->nodes[$i];
-            $data = curl_multi_getcontent( $curl );
-            $data = $this->fetchResult( $data, $host, $curl, $ignoreCodes );
-            $multiData[$this->nodes[$i]] = $data;
-
-            curl_multi_remove_handle( $multiCurl, $curl );
-        }
-
-        return $multiData;
+        return $this->fetcher->fetch( $url, $post, $data, $ignoreCodes, $headers );
     }
 
     /**
@@ -1171,113 +1000,17 @@ class WavesKit
     public function setBestNode()
     {
         $this->setDefaultNode();
-        $nodes = $this->nodes;
-        $best = [];
-        $n = count( $nodes );
-        for( $run = 1, $rerun = false;; $run++ )
+        $this->fetcher->setBest( '/blocks/height', function( $json, $elapsed )
         {
-            $lastHeight = 0;
-            for( $i = 0; $i < $n; $i++ )
-            {
-                $node = $nodes[$i];
-                $this->setNodeAddress( $node, $this->cacheLifetime );
-                $tt = microtime( true );
-                $this->curlSetBestOnError = 0;
-                $height = $this->height();
-                $score = $height + ( 1 - ( microtime( true ) - $tt ) / ( $this->curlTimeout + 10 ) );
-                $best[$node] = $score;
-                if( abs( $height - $lastHeight ) === 1 )
-                    $rerun = true;
-                $lastHeight = $height;
-            }
-            if( !$rerun || $run == 2 )
-                break;
-            sleep( 1 );
-        }
-        arsort( $best );
-        $this->setNodeAddress( array_keys( $best ), $this->cacheLifetime );
-    }
+            if( false === $json ||
+                false === ( $json = $this->json_decode( $json ) ) ||
+                !isset( $json['height'] ) )
+                return 0;
 
-    private function fetchSetup( $host, $curl, $url, $post, $data, $headers )
-    {
-        $options = [ CURLOPT_URL => $host . $url, CURLOPT_POST => $post ];
-
-        if( isset( $headers ) )
-            $options[CURLOPT_HTTPHEADER] = $headers;
-
-        if( isset( $data ) )
-        {
-            $options[CURLOPT_POSTFIELDS] = $data;
-            if( !isset( $options[CURLOPT_HTTPHEADER] ) )
-                $options[CURLOPT_HTTPHEADER] = [ 'Content-Type: application/json', 'Accept: application/json' ];
-        }
-
-        return curl_setopt_array( $curl, $options );
-    }
-
-    private function fetchResult( $data, $host, $curl, $ignoreCodes )
-    {
-        $code = curl_getinfo( $curl, CURLINFO_HTTP_CODE );
-        if( 0 !== ( $errno = curl_errno( $curl ) ) || $code !== 200 || false === $data )
-        {
-            if( !isset( $ignoreCodes ) || $errno !== 0 || !in_array( $code, $ignoreCodes ) )
-            {
-                $curl_error = curl_error( $curl );
-                if( is_string( $data ) && false !== ( $json = $this->json_decode( $data ) ) && isset( $json['message'] ) )
-                {
-                    $status = isset( $json['error'] ) ? $json['error'] : ( isset( $json['status'] ) ? $json['status'] : '...' );
-                    $this->log( 'e', "$host ($status)" . ( isset( $json['message'] ) ? " ({$json['message']})" : '' ) );
-                }
-                else
-                    $this->log( 'e', "$host (HTTP $code) (cURL $errno" . ( empty( $curl_error ) ? ')' : ":$curl_error)" ) );
-
-                if( isset( $this->curlSetBestOnError ) && $this->curlSetBestOnError > 0 )
-                    $this->curlSetBestOnError++;
-            }
-
-            $data = false;
-        }
-
-        return [ $data, curl_getinfo( $curl, CURLINFO_TOTAL_TIME ) ];
-    }
-
-    private function fetchSingle( $host, $curl, $url, $post, $data, $ignoreCodes, $headers )
-    {
-        if( !$this->fetchSetup( $host, $curl, $url, $post, $data, $headers ) )
-            return [ false, 0 ];
-
-        return $this->fetchResult( curl_exec( $curl ), $host, $curl, $ignoreCodes );
-    }
-
-    private $cache;
-
-    private function setNodeCache( $key, $data )
-    {
-        if( $this->cacheLifetime <= 0 )
-            return;
-
-        if( count( $this->cache ) >= 256 )
-            $this->resetNodeCache();
-
-        $this->cache[$key] = [ $data, microtime( true ) ];
-    }
-
-    private function getNodeCache( $key )
-    {
-        if( $this->cacheLifetime > 0 && isset( $this->cache[$key] ) )
-        {
-            if( microtime( true ) - $this->cache[$key][1] < $this->cacheLifetime )
-                return $this->cache[$key][0];
-
-            unset( $this->cache[$key] );
-        }
-
-        return null;
-    }
-
-    private function resetNodeCache()
-    {
-        $this->cache = [];
+            $height = $json['height'];
+            $score = $height + ( 1 - ( $elapsed / ( $this->curlTimeout + 10 ) ) );
+            return $score;
+        } );
     }
 
     /**
@@ -1316,14 +1049,8 @@ class WavesKit
         if( false === ( $json = $this->fetch( '/blocks/height' ) ) )
             return false;
 
-        if( false === ( $json = $this->json_decode( $json ) ) ||
-            !isset( $json['height'] ) )
-        {
-            if( isset( $this->curlSetBestOnError ) && $this->curlSetBestOnError > 0 )
-                $this->curlSetBestOnError++;
-
+        if( false === ( $json = $this->json_decode( $json ) ) || !isset( $json['height'] ) )
             return false;
-        }
 
         return $json['height'];
     }
@@ -1766,7 +1493,7 @@ class WavesKit
             if( $tx !== $this->getTransactionById( $id ) )
             {
                 $this->log( 'w', "($id) change detected" );
-                $this->resetNodeCache();
+                $this->fetcher->resetCache();
                 return $this->ensure( $tx, $confirmations, $sleep, $timeout );
             }
 

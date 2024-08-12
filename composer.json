@@ -23,7 +23,8 @@
         "ext-curl": "*",
         "ext-gmp": "*",
         "ext-mbstring": "*",
-        "deemru/cloaked": "^1.0"
+        "deemru/cloaked": "^1.0",
+        "deemru/fetcher": "^1.0"
     },
     "suggest": {
         "ext-sodium": "Up to ~2000x faster sign/verify"
