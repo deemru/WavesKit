@@ -34,11 +34,9 @@ Will be installed automatically through `composer install`:
 - [deemru/curve25519](https://packagist.org/packages/deemru/curve25519)
 - [deemru/cryptash](https://packagist.org/packages/deemru/cryptash)
 - [deemru/pairs](https://packagist.org/packages/deemru/pairs)
-- [composer/ca-bundle](https://packagist.org/packages/composer/ca-bundle)
-- [cURL](http://php.net/manual/en/book.curl.php)
-- [GMP](http://php.net/manual/en/book.gmp.php)
+- [deemru/cloaked](https://packagist.org/packages/deemru/cloaked)
+- [deemru/fetcher](https://packagist.org/packages/deemru/fetcher)
 - [Multibyte String](http://php.net/manual/en/book.mbstring.php)
-- [SQLite (PDO)](http://php.net/manual/en/ref.pdo-sqlite.php)
 
 ## Recommended
 
