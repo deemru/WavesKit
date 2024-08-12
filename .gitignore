@@ -1,2 +1,4 @@
 .vscode
 /vendor
+/composer.lock
+/test/private.php
