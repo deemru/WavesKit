@@ -45,7 +45,7 @@ class WavesKit
         if( !isset( $this->curlTimeout ) )
         {
             if( !defined( 'WK_CURL_TIMEOUT' ) )
-                define( 'WK_CURL_TIMEOUT', 5 );
+                define( 'WK_CURL_TIMEOUT', 15 );
 
             $this->curlTimeout = WK_CURL_TIMEOUT;
         }
@@ -667,6 +667,7 @@ class WavesKit
         if( isset( $backupNodes ) )
             $hosts = array_merge( $hosts, $backupNodes );
         $this->fetcher = Fetcher::hosts( $hosts )->setTimeoutCache( $cacheLifetime );
+        $this->fetcher->setTimeoutConnect( $this->curlTimeout )->setTimeoutExec( $this->curlTimeout )->setOptions( $this->curlOptions );
         if( count( $hosts ) > 1 && defined( 'WK_CURL_SETBESTONERROR' ) )
             $this->setBestOnError = true;
     }
@@ -683,23 +684,30 @@ class WavesKit
 
     private function setDefaultNode()
     {
-        if( $this->getNodeAddress() === false )
+        if( !isset( $this->fetcher ) )
         {
             switch( $this->chainId )
             {
                 case 'W':
-                    $this->setNodeAddress( 'https://nodes.wavesplatform.com' );
+                    $this->setNodeAddress( [
+                        'https://nodes.wavesplatform.com',
+                        'https://nodes.wavesnodes.com',
+                        'https://nodes.wx.network',
+                        'https://nodes.wavesexplorer.com',
+                    ] );
                     break;
                 case 'T':
-                    $this->setNodeAddress( [ 'https://testnode1.wavesnodes.com', 'https://testnode2.wavesnodes.com',
-                                             'https://testnode3.wavesnodes.com', 'https://testnode4.wavesnodes.com' ] );
+                    $this->setNodeAddress( [
+                        'https://nodes-testnet.wavesnodes.com',
+                        'https://testnode1.wavesnodes.com',
+                        'https://testnode2.wavesnodes.com',
+                        'https://testnode4.wavesnodes.com',
+                    ] );
                     break;
                 default:
                     break;
             }
         }
-
-        $this->fetcher->setTimeoutConnect( $this->curlTimeout )->setTimeoutExec( $this->curlTimeout )->setOptions( $this->curlOptions );
     }
 
     public $matcher;
