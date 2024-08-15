@@ -281,7 +281,7 @@ $t->pretest( 'private faucet ready' );
     $wkFaucet->height();
     unset( $wkFaucet->logFunction );
     $wkFaucet->height();
-    $wkFaucet->setNodeAddress( $wkFaucet->nodes );
+    $wkFaucet->setNodeAddress( $nodes );
     $wkFaucet->setSeed( getenv( 'WAVESKIT_SEED' ) );
     $address = $wkFaucet->getAddress();
     $balance = $wkFaucet->balance();

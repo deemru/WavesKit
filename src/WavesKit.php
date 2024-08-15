@@ -2393,7 +2393,7 @@ class WavesKit
             case 16: // invoke script
                 if( $tx['version'] === 2 )
                 {
-                    $dApp = new \Waves\Recipient;
+                    $dApp = new \Waves\Protobuf\Recipient;
                     if( $tx['dApp'][0] === '3' )
                         $dApp->setPublicKeyHash( substr( $this->base58Decode( $tx['dApp'] ), 2, 20 ) );
                     else
@@ -2413,22 +2413,22 @@ class WavesKit
                     $payments = [];
                     foreach( $tx['payment'] as $rec )
                     {
-                        $amount = new \Waves\Amount;
+                        $amount = new \Waves\Protobuf\Amount;
                         if( isset( $rec['assetId'] ) ) $amount->setAssetId( $this->base58Decode( $rec['assetId'] ) );
                         $amount->setAmount( $rec['amount'] );
                         $payments[] = $amount;
                     }
 
-                    $feeAmount = new \Waves\Amount;
+                    $feeAmount = new \Waves\Protobuf\Amount;
                     if( isset( $tx['feeAssetId'] ) ) $feeAmount->setAssetId( $this->base58Decode( $tx['feeAssetId'] ) );
                     $feeAmount->setAmount( $tx['fee'] );
 
-                    $invokeScript = new \Waves\InvokeScriptTransactionData;
+                    $invokeScript = new \Waves\Protobuf\InvokeScriptTransactionData;
                     $invokeScript->setDApp( $dApp );
                     $invokeScript->setFunctionCall( $body );
                     $invokeScript->setPayments( $payments );
 
-                    $pbtx = new \Waves\Transaction();
+                    $pbtx = new \Waves\Protobuf\Transaction();
                     $pbtx->setInvokeScript( $invokeScript );
 
                     $pbtx->setVersion( $tx['version'] );
@@ -2469,16 +2469,16 @@ class WavesKit
                 break;
 
             case 17: // update asset info
-                $updateAssetInfo = new \Waves\UpdateAssetInfoTransactionData;
+                $updateAssetInfo = new \Waves\Protobuf\UpdateAssetInfoTransactionData;
                 $updateAssetInfo->setAssetId( $this->base58Decode( $tx['assetId'] ) );
                 $updateAssetInfo->setName( $tx['name'] );
                 $updateAssetInfo->setDescription( $tx['description'] );
 
-                $feeAmount = new \Waves\Amount;
+                $feeAmount = new \Waves\Protobuf\Amount;
                 if( isset( $tx['feeAssetId'] ) ) $feeAmount->setAssetId( $tx['feeAssetId'] );
                 $feeAmount->setAmount( $tx['fee'] );
 
-                $pbtx = new \Waves\Transaction();
+                $pbtx = new \Waves\Protobuf\Transaction();
                 $pbtx->setUpdateAssetInfo( $updateAssetInfo );
 
                 $pbtx->setVersion( $tx['version'] );

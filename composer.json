@@ -13,6 +13,7 @@
     ],
     "require": {
         "php": ">=5.6",
+        "ext-mbstring": "*",
         "deemru/abcode": "^1.0",
         "deemru/blake2b": "^1.0",
         "deemru/curve25519": "^1.0",
@@ -20,17 +21,14 @@
         "deemru/pairs": "^1.0",
         "deemru/cloaked": "^1.0",
         "deemru/fetcher": "^1.0",
-        "google/protobuf": "^3.13",
-        "ext-mbstring": "*"
+        "waves/protobuf": "^1.4"
     },
     "suggest": {
         "ext-sodium": "Up to ~2000x faster sign/verify"
     },
     "autoload": {
         "psr-4": {
-            "deemru\\": "src/",
-            "Waves\\": "protobuf/Waves/",
-            "GPBMetadata\\Waves\\": "protobuf/GPBMetadata/Waves/"
+            "deemru\\": "src/"
         }
     },
     "scripts": {
