@@ -1502,7 +1502,7 @@ class WavesKit
             {
                 $this->log( 'w', "($id) change detected" );
                 $this->fetcher->resetCache();
-                return $this->ensure( $tx, $confirmations, $sleep, $timeout );
+                return $this->ensure( $tx, $confirmations, $sleep, $timeout, $hard );
             }
 
             $this->log( 's', "($id) reached $c confirmations" );
