@@ -1180,6 +1180,51 @@ class WavesKit
         return $json;
     }
 
+    private function txDiffsAmount( &$diffs, $address, $asset, $amount )
+    {
+        $diffs[$address][$asset] = $amount + ( isset( $diffs[$address][$asset] ) ? $diffs[$address][$asset] : 0 );
+    }
+
+    /**
+     * Calculates a transaction address/assets/amounts diffs as an array
+     *
+     * @param  array $tx Transaction as an array
+     *
+     * @return array|false Calculated diffs as an array or FALSE on failure
+     */
+    public function txDiffs( $tx, $caller = null, &$diffs = null )
+    {
+        if( $diffs === null )
+            $diffs = [];
+        
+        if( $caller === null )
+            $caller = $tx['sender'];
+
+        $dApp = $tx['dApp'];
+        $payments = $tx['payment'];
+        $stateChanges = $tx['stateChanges'];
+
+        foreach( $stateChanges['invokes'] as $tx )
+            $this->txDiffs( $tx, $dApp, $diffs );
+
+        foreach( $payments as $payment )
+        {
+            $amount = $payment['amount'];
+            $asset = isset( $payment['assetId'] ) ? $payment['assetId'] : 'WAVES';
+            $this->txDiffsAmount( $diffs, $caller, $asset, -$amount );
+            $this->txDiffsAmount( $diffs, $dApp, $asset, +$amount );
+        }
+        foreach( $stateChanges['transfers'] as $transfer )
+        {
+            $amount = $transfer['amount'];
+            $asset = isset( $transfer['asset'] ) ? $transfer['asset'] : 'WAVES';
+            $this->txDiffsAmount( $diffs, $dApp, $asset, -$amount );
+            $this->txDiffsAmount( $diffs, $transfer['address'], $asset, +$amount );
+        }
+
+        return $diffs;
+    }
+
     /**
      * Broadcasts a transaction
      *
@@ -2218,7 +2263,7 @@ class WavesKit
     /**
      * Gets transaction body
      *
-     * @param  string $tx Transaction as an array
+     * @param  array $tx Transaction as an array
      *
      * @return string|false Body of the transaction or FALSE on failure
      */

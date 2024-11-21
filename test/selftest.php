@@ -659,11 +659,24 @@ $t->pretest( 'txInvokeScript (return Waves)' );
     $tx = $wk->txInvokeScript( '3MsABb4zvG6U2gczxt7y91XSzGGuZzmLxsi', 'retransmit', $args, $payments );
     $tx['version'] = 2;
     $tx = $wk->txSign( $tx );
+    {
+        $evtx = $wk->txEvaluate( $tx );
+        $evtxDiffs = $wk->txDiffs( $evtx );
+        $vtx = $wk->txValidate( $tx );
+        $vtxDiffs = $wk->txDiffs( $vtx );
+    }
     $tx = $wk->txBroadcast( $tx );
 
     $result &= $tx !== false;
 
     $t->test( $result );
+}
+
+$t->pretest( 'txDiffs' );
+{
+    $etx = $wk->ensure( $evtx );
+    $etxDiffs = $wk->txDiffs( $etx );
+    $t->test( -1 === $etxDiffs[$wk->getAddress()]['WAVES'] && $etxDiffs === $evtxDiffs && $etxDiffs === $vtxDiffs );
 }
 
 $t->finish();

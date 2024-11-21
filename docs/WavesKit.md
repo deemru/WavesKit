@@ -72,6 +72,7 @@
 |[txBroadcast](#waveskittxbroadcast)|Broadcasts a transaction|
 |[txBurn](#waveskittxburn)|Makes burn transaction as an array|
 |[txData](#waveskittxdata)|Makes data transaction as an array|
+|[txDiffs](#waveskittxdiffs)|Calculates a transaction address/assets/amounts diffs as an array|
 |[txEvaluate](#waveskittxevaluate)|Evaluates a transaction|
 |[txInvokeScript](#waveskittxinvokescript)|Makes invoke script transaction as an array|
 |[txIssue](#waveskittxissue)|Makes issue transaction as an array|
@@ -1824,7 +1825,7 @@ Makes asset script transaction as an array
 **Description**
 
 ```php
-public txBody (string $tx)
+public txBody (array $tx)
 ```
 
 Gets transaction body 
@@ -1833,7 +1834,7 @@ Gets transaction body
 
 **Parameters**
 
-* `(string) $tx`
+* `(array) $tx`
 : Transaction as an array  
 
 **Return Values**
@@ -1928,6 +1929,33 @@ Makes data transaction as an array
 `array|false`
 
 > Data transaction as an array or FALSE on failure
+
+
+<hr />
+
+
+### WavesKit::txDiffs  
+
+**Description**
+
+```php
+public txDiffs (array $tx)
+```
+
+Calculates a transaction address/assets/amounts diffs as an array 
+
+ 
+
+**Parameters**
+
+* `(array) $tx`
+: Transaction as an array  
+
+**Return Values**
+
+`array|false`
+
+> Calculated diffs as an array or FALSE on failure
 
 
 <hr />
