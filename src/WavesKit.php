@@ -997,7 +997,7 @@ class WavesKit
      */
     public function fetchMulti( $url, $post = false, $data = null, $ignoreCodes = null, $headers = null )
     {
-        return $this->fetcher->fetch( $url, $post, $data, $ignoreCodes, $headers );
+        return $this->fetcher->fetchMulti( $url, $post, $data, $ignoreCodes, $headers );
     }
 
     /**
