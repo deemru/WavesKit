@@ -7,7 +7,6 @@ use deemru\Blake2b;
 use deemru\Curve25519;
 use deemru\Cryptash;
 use deemru\Pairs;
-use Composer\CaBundle\CaBundle;
 
 class WavesKit
 {
@@ -1306,7 +1305,7 @@ class WavesKit
         if( false === ( $json = $this->json_decode( $json ) ) )
             return false;
 
-        if( !isset( $json['success'] ) && $json['success'] === true )
+        if( !isset( $json['success'] ) || $json['success'] !== true )
             return false;
 
         return true;
