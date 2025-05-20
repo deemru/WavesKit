@@ -3,8 +3,6 @@
 require __DIR__ . '/../vendor/autoload.php';
 use deemru\WavesKit;
 
-use function deemru\curve25519\rnd;
-
 $wk = new WavesKit();
 
 function a2b( $a )
@@ -224,7 +222,7 @@ $t->pretest( "base58Decode (cache much faster)" );
 {
     $data = [];
     for( $i = 0; $i < 64; ++$i )
-        $data[] = $wk->base58Encode( rnd( 26 + $i ) );
+        $data[] = $wk->base58Encode( \deemru\Cryptash::rnd( 26 + $i ) );
 
     $tt = microtime( true );
     for( $i = 0; $i < 128; ++$i )
@@ -288,6 +286,7 @@ $t->pretest( 'private faucet ready' );
     $balance = $balance[0]['balance'];
     $t->test( $balance >= 10000000000 );
     $wkFaucet->log( 'i', "faucet = $address (" . number_format( $balance / 100000000, 8, '.', '' ) . ' Waves)' );
+    //$wkFaucet->ensure( $wkFaucet->txBroadcast( $wkFaucet->txSign( $wkFaucet->txTransfer( '3MpvqThrQUCC1DbkY9sMmo4fp77e2h11NaM', 1000 * 100000000 ))));
 }
 
 if( $t->failed > 0 )
