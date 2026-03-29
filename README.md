@@ -28,7 +28,7 @@ $tx = $wk->ensure( $tx );
 
 Will be installed automatically through `composer install`:
 
-- [PHP](https://www.php.net) >= 7.0
+- [PHP](https://www.php.net) >= 8.1
 - [deemru/abcode](https://packagist.org/packages/deemru/abcode)
 - [deemru/blake2b](https://packagist.org/packages/deemru/blake2b)
 - [deemru/curve25519](https://packagist.org/packages/deemru/curve25519)
@@ -41,7 +41,6 @@ Will be installed automatically through `composer install`:
 
 ## Recommended
 
-- [PHP](https://www.php.net) >= 7.2
 - [Sodium](https://www.php.net/manual/en/book.sodium.php)
 
 ## Installation
