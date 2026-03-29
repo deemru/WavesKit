@@ -28,7 +28,7 @@ $tx = $wk->ensure( $tx );
 
 Will be installed automatically through `composer install`:
 
-- [PHP](http://php.net) >= 5.6
+- [PHP](https://www.php.net) >= 7.0
 - [deemru/abcode](https://packagist.org/packages/deemru/abcode)
 - [deemru/blake2b](https://packagist.org/packages/deemru/blake2b)
 - [deemru/curve25519](https://packagist.org/packages/deemru/curve25519)
@@ -36,12 +36,13 @@ Will be installed automatically through `composer install`:
 - [deemru/pairs](https://packagist.org/packages/deemru/pairs)
 - [deemru/cloaked](https://packagist.org/packages/deemru/cloaked)
 - [deemru/fetcher](https://packagist.org/packages/deemru/fetcher)
-- [Multibyte String](http://php.net/manual/en/book.mbstring.php)
+- [deemru/waves-protobuf](https://packagist.org/packages/deemru/waves-protobuf)
+- [Multibyte String](https://www.php.net/manual/en/book.mbstring.php)
 
 ## Recommended
 
-- [PHP](http://php.net) >= 7.2
-- [Sodium](http://php.net/manual/en/book.sodium.php)
+- [PHP](https://www.php.net) >= 7.2
+- [Sodium](https://www.php.net/manual/en/book.sodium.php)
 
 ## Installation
 
